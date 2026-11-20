@@ -233,7 +233,13 @@ function caps() {
 /* unwrap any MCP payload into JS data */
 function unwrap(p) {
   if (p == null) return p;
-  if (typeof p === "string") { try { return unwrap(JSON.parse(p)); } catch { return p; } }
+  if (typeof p === "string") {
+    try { return unwrap(JSON.parse(p)); } catch {}
+    // UTC cubes (e.g. buying_engine_deliveries_utc) append a note after the JSON ("\n\nTimezone: dates are UTC…"): keep the JSON part
+    const t = p.trim(), open = t[0], close = open === "[" ? "]" : open === "{" ? "}" : null;
+    if (close) { try { return unwrap(JSON.parse(t.slice(0, t.lastIndexOf(close) + 1))); } catch {} }
+    return p;
+  }
   if (Array.isArray(p) && p.length && p[0] && p[0].type === "text") return unwrap(p.map(x => x.text).join(""));
   if (typeof p === "object") {
     if (Array.isArray(p.content) && p.content[0]?.type === "text") return unwrap(p.content.map(x => x.text).join(""));

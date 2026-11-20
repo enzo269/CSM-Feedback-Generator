@@ -130,6 +130,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - History: a saved feedback reopens editable, copyable, exportable and postable on its Jira tickets.
 - Removed the Signature setting (author name is the `AUTHOR` constant).
 - Seedtag palette only (no more green / amber / blue).
+- Fix: strategies were never read — the UTC cube `buying_engine_deliveries_utc` appends a "Timezone: …" note after its JSON, which broke parsing; the note is now ignored.
 - Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
