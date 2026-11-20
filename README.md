@@ -72,6 +72,7 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 - **To watch** = pacing < 95% or a KPI below target (performance: internal report says under/over pacing, or KPI off target).
 - **Projection / budget at risk** = (delivered + days left × **average of the last 3 days**) / booked; budget at risk = booked revenue × (1 − projection).
 - **Direct** never delivers above 100% of booking (projection capped at 100%). **PMP** can run ahead early and usually ends around **90–95% of the budget** (fees) — normal.
+- **Buying Engine strategies are always given** when the campaign has some: one bullet per strategy (share of impressions + the metric of the first KPI: VTR, CTR or viewability), then one sentence on which carries the volume and which performs best. Mandatory in every type and tone, not affected by the preferences that leave out metrics.
 - Mid-flight updates: **no recommendations**. End reports: recos from 3 levers only — (1) capitalise on what worked (strategies, contexts, publishers, devices), (2) add formats (video/CTV if display, display/CTV if video), (3) more budget next time **only** if delivery went fine. **Never recommend changing or adding creatives.**
 - No signature (Jira shows the author). The feedback is written as `AUTHOR` (constant at the top of the script, "Enzo"). English. Jira markdown.
 - Each data source can fail on its own: if BigQuery, Jira, a Gsheet or the data lake doesn't answer, the tool keeps going with the others and shows a warning (a CRM ID with no data because BigQuery was down is shown as **BIGQUERY DOWN**, not NO DATA).
@@ -129,6 +130,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - History: a saved feedback reopens editable, copyable, exportable and postable on its Jira tickets.
 - Removed the Signature setting (author name is the `AUTHOR` constant).
 - Seedtag palette only (no more green / amber / blue).
+- Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **v1** — first version.
