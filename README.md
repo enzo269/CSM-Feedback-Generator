@@ -10,7 +10,7 @@ Owner: Enzo (Operations Market Lead BNL). Live artifact: https://claude.ai/artif
 
 | Tab | What it does |
 |---|---|
-| **Feedback** | CRM IDs (chips) · *Browse live campaigns* (all live BE+NL campaigns, filter by ops / CSM / "to watch") · feedback type (Auto / Mid-flight update / End-of-campaign report) · focus period (default whole flight) · extra KPI files (PNG, JPG, Excel, CSV) · free context · per-campaign cards (status + reason, KPI vs target, daily chart vs daily goal, projection & budget at risk, since-last-update deltas, flight insights) · generated feedback with styles **Factual** (default) / **Short** / **Detailed**, Edit/Preview, select-a-passage comment bubble (Fix + "Remember"), Learn from my edits, Regenerate, Copy, **Export PDF**, **Post as Jira comment** (with @mention of the CSM) · History (5 latest, "show all") |
+| **Feedback** | CRM IDs (chips) · *Browse live campaigns* (all live BE+NL campaigns, filter by ops / CSM / "to watch") · feedback type (Auto / Mid-flight update / End-of-campaign report) · focus period (default whole flight) · extra KPI files (PNG, JPG, Excel, CSV) · free context · per-campaign cards (status + reason, KPI vs target, daily chart vs daily goal, projection & budget at risk, since-last-update deltas, flight insights) · generated feedback with styles **Factual** (default) / **Short** / **Detailed**, Edit/Preview, select-a-passage comment bubble (Fix + "Remember"), Learn from my edits, Regenerate, Copy, **Export PDF**, **Post as Jira comment** (with @mention of the CSM) · History (5 latest, "show all"; a saved feedback reopens editable, copyable, exportable and postable) |
 | **Monday drafts** | Selection of CRM IDs to draft every Monday (add / remove) · list of drafts (flagged first, ops filter, delete one / posted / all) · click a draft → opens it in Feedback with refreshed figures |
 | **My preferences** | Style rules applied to every feedback (toggle, edit by double-click, delete, add) · approved examples (feedbacks posted to Jira; the 3 latest are used as style models; deletable) |
 
@@ -44,6 +44,8 @@ Jira cloudId: `f27c696c-ab8c-4c73-896e-079ad4bb1763` (seedtag.atlassian.net).
 - `pmp_product_line_delivery_tz` — **PMP**: same idea with `salesforce_configured_impressions`, `impressions_accumulated`, `impressions_goal`, `impressions_pacing_ratio`, `adserver_*_accumulated`, `gross_revenue_spent_ratio`.
 - `direct_flight_delivery_tz` — `external_execution_id` per CRM ID (to query the data lake).
 - `buying_engine_deliveries_utc` — **strategies** (`strategy_name`) with impressions, clicks, viewable/measured, video starts/completions. Max **14 days per query** → the tool queries the flight in 14-day chunks (max 8).
+- Delivery history window: **365 days** (`HISTORY_DAYS`), CRM IDs queried in batches of 10 (`CRM_BATCH`) to stay under the 5 000-row limit. For a flight that started earlier, cumulative totals and pacing still cover the whole flight; the daily chart and weekly insights start 365 days ago (flagged on the campaign card and in the prompt).
+- Dates ("today", "yesterday") are computed in **Europe/Madrid**.
 
 ### 2.2 Jira
 - **BNL AdOps - Bookings** (`project = BNL`): summary starts with the CRM ID (`293425 | …`).
@@ -71,7 +73,9 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 - **Projection / budget at risk** = (delivered + days left × **average of the last 3 days**) / booked; budget at risk = booked revenue × (1 − projection).
 - **Direct** never delivers above 100% of booking (projection capped at 100%). **PMP** can run ahead early and usually ends around **90–95% of the budget** (fees) — normal.
 - Mid-flight updates: **no recommendations**. End reports: recos from 3 levers only — (1) capitalise on what worked (strategies, contexts, publishers, devices), (2) add formats (video/CTV if display, display/CTV if video), (3) more budget next time **only** if delivery went fine. **Never recommend changing or adding creatives.**
-- No signature (Jira shows the author). English. Jira markdown.
+- No signature (Jira shows the author). The feedback is written as `AUTHOR` (constant at the top of the script, "Enzo"). English. Jira markdown.
+- Each data source can fail on its own: if BigQuery, Jira, a Gsheet or the data lake doesn't answer, the tool keeps going with the others and shows a warning (a CRM ID with no data because BigQuery was down is shown as **BIGQUERY DOWN**, not NO DATA).
+- UI colours: Seedtag palette only (white, cream, coral, black, 5 greys). Statuses: on track = black, to watch = coral outline, under pacing = coral, not started = light grey, ended = dark grey.
 - Default preferences: see `config/default-preferences.json`.
 
 ---
@@ -80,7 +84,7 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 
 | Path | Content |
 |---|---|
-| `feedbacks/<id>` | History: `ts`, `crms`, `label`, `feedback`, `statuses`, `snap` (per-CRM snapshot used for "since last update"), `posted` |
+| `feedbacks/<id>` | History: `ts`, `crms`, `label`, `feedback`, `mode`, `jira` (per-CRM `key`, `url`, `csm`, `csmId`, so a reopened feedback can be posted with the @mention), `statuses`, `snap` (per-CRM snapshot used for "since last update"), `posted` |
 | `examples/<id>` | Approved feedbacks (saved when posted): `ts`, `mode`, `crms`, `text` |
 | `style/rules` | `{ rules: [{ text, on, ts }] }` — My preferences |
 | `drafts/<batch>_<crm>` | Monday drafts: `ts`, `batch`, `crms`, `csm`, `ops`, `label`, `flag`, `status` (new/posted), `mode`, `text` |
@@ -92,9 +96,9 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 
 The page is one self-contained `index.html` (CSS + JS inline; libraries from cdnjs: SheetJS, html2canvas, jsPDF).
 
-1. Edit `index.html`.
-2. In Claude (claude.ai, with the Artifact tool), publish the file to the artifact (republish = same slug; when the artifact is shared with the org pass `shared_live: "org"`).
-3. Capabilities are declared separately — `config/capabilities.json` (when adding a capability: declare first, then publish the code that uses it).
+1. Edit `index.html`, commit and push to this repo.
+2. Republish the file to the live artifact (https://claude.ai/artifact/5Fe2486gYwq4stpRzuacs8) from Claude with the Artifact tool, passing that URL so the link stays the same. The artifact is shared with the Seedtag org: viewers get the update immediately.
+3. Capabilities are stored with the artifact and kept on republish. `config/capabilities.json` mirrors them; when adding a capability, publish with the new full declaration.
 4. Connector names at the top of the script (`CUBE_SRV`, `JIRA_SRV`, `DRIVE_SRV`, `SHEETS_SRV`, `ADX_SRV`) must match the **display names** of the connectors in the viewer's Claude.
 
 ### Working with someone outside the Claude team
@@ -115,7 +119,20 @@ This repo is the single source of truth for the code. Each published artifact (t
 ## 6. Scheduled task (Monday drafts)
 See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 
-## 7. Repo layout
+## 7. Changelog
+
+**2026-11-20**
+- Prompt: removed contradictions (bullets vs paragraphs now follow the chosen style; metrics with no value or no target are left out).
+- Data loading keeps going when a source fails (BigQuery, Jira, Gsheet, data lake) and shows the warnings after the results.
+- Dates in Europe/Madrid instead of UTC; no more `NaN` projection on performance campaigns without spend; history window 180 → 365 days, with the limit shown in Settings and on the card.
+- Targeting insights and Buying Engine strategies fetched in parallel.
+- History: a saved feedback reopens editable, copyable, exportable and postable on its Jira tickets.
+- Removed the Signature setting (author name is the `AUTHOR` constant).
+- Seedtag palette only (no more green / amber / blue).
+
+**v1** — first version.
+
+## 8. Repo layout
 ```
 index.html                         the artifact page
 config/capabilities.json           capability declaration (connectors, Claude, db rules, downloads)

@@ -8,10 +8,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 html{color-scheme:light}
-:root{--coral:#FF6B7C;--cream:#EBE6E4;--white:#FFF;--black:#000;--grey:#6b6563;--green:#2E9E6A;--amber:#E8A33D;--blue:#5B7FA6}
+/* Seedtag palette only: white, cream, coral (single accent), black, 5 greys. Text on coral is black. */
+:root{--coral:#FF6B7C;--cream:#EBE6E4;--white:#FFF;--black:#000;--g1:#D4D0CE;--g2:#BCB8B6;--g3:#8D8A89;--g4:#5E5C5B;--g5:#2F2E2E;--grey:var(--g4)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--black);font-size:14px;min-height:100vh}
-header{background:var(--coral);color:#fff;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header{background:var(--coral);color:#000;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:20px;font-weight:600}
 header h1 em{font-family:'Instrument Serif',serif;font-weight:400;font-size:24px}
 header .tag{font-size:12px;opacity:.9}
@@ -20,25 +21,25 @@ header .tag{font-size:12px;opacity:.9}
 .card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px}
 h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--grey);margin-bottom:12px;font-weight:600}
 label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid #ddd;border-radius:10px;padding:8px;cursor:text}
+.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--g1);border-radius:10px;padding:8px;cursor:text}
 .chip{background:var(--cream);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;display:inline-flex;align-items:center}
 .chip button{border:none;background:none;color:var(--coral);margin-left:6px;cursor:pointer;font-weight:700;font-size:13px}
 .chips input{border:none;outline:none;font:inherit;flex:1;min-width:90px;background:transparent;color:#000;padding:2px 4px}
-.drop{border:2px dashed var(--coral);border-radius:12px;padding:18px;text-align:center;color:var(--grey);font-size:12px;background:#fff7f8;cursor:pointer}
-.drop.over{background:#ffe3e7}
-.file{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:6px 0;border-bottom:1px solid #eee}
+.drop{border:2px dashed var(--coral);border-radius:12px;padding:18px;text-align:center;color:var(--grey);font-size:12px;background:#fff;cursor:pointer}
+.drop.over{background:var(--cream)}
+.file{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--g1)}
 .file .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .file select{width:auto;padding:2px 4px;font-size:11px}
 .file button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
-select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid #ddd;border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
+select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid var(--g1);border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
 input,select,textarea{color:#000;-webkit-text-fill-color:#000}
-::placeholder{color:#9a9391;-webkit-text-fill-color:#9a9391;opacity:1}
+::placeholder{color:var(--g3);-webkit-text-fill-color:var(--g3);opacity:1}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{background:var(--coral);color:#fff;border:none;border-radius:24px;padding:12px 20px;font:inherit;font-weight:600;width:100%;margin-top:14px;cursor:pointer}
+.btn{background:var(--coral);color:#000;border:none;border-radius:24px;padding:12px 20px;font:inherit;font-weight:600;width:100%;margin-top:14px;cursor:pointer}
 .btn:disabled{opacity:.5;cursor:default}
 .btn.sec{background:#fff;color:var(--black);border:1px solid var(--black);width:auto;margin:0;padding:9px 16px}
-.btn.dark{background:var(--black);width:auto;margin:0;padding:9px 16px}
-.hist .h{font-size:12px;padding:8px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.btn.dark{background:var(--black);color:#fff;width:auto;margin:0;padding:9px 16px}
+.hist .h{font-size:12px;padding:8px 0;border-bottom:1px solid var(--g1);display:flex;justify-content:space-between;gap:8px;cursor:pointer}
 .hist .h:hover{color:var(--coral)}
 .hist .h span:last-child{color:var(--grey);white-space:nowrap}
 .muted{color:var(--grey);font-size:12px}
@@ -51,13 +52,13 @@ input,select,textarea{color:#000;-webkit-text-fill-color:#000}
 .crm-head h3{font-size:16px;font-weight:600}
 .crm-head p{font-size:12px;color:var(--grey);margin-top:3px}
 .crm-head a{color:var(--grey)}
-.pill{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;color:#fff;white-space:nowrap}
-.s-ok{background:var(--green)}.s-risk{background:var(--amber)}.s-ko{background:var(--coral)}.s-na{background:var(--blue)}.s-end{background:#888}
+.pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1.5px solid transparent;white-space:nowrap}
+.s-ok{background:var(--black);color:#fff}.s-risk{background:#fff;color:#000;border-color:var(--coral)}.s-ko{background:var(--coral);color:#000}.s-na{background:var(--g1);color:#000}.s-end{background:var(--g4);color:#fff}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;font-size:11px;color:var(--grey);font-weight:600;padding:6px 8px;text-transform:uppercase}
 td{padding:8px}
 tr:nth-child(even) td{background:var(--cream)}
-.d-ok{color:var(--green);font-weight:600}.d-ko{color:var(--coral);font-weight:600}
+.d-ok{color:var(--g5);font-weight:600}.d-ko{color:#000;font-weight:700;text-decoration:underline 2px var(--coral);text-underline-offset:3px}
 .chart{margin:14px 0 4px}
 .legend{font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
@@ -69,48 +70,49 @@ tr:nth-child(even) td{background:var(--cream)}
 .feedback textarea{color:#000;background:var(--cream);border:none;border-radius:10px;padding:16px;line-height:1.55;font-size:13.5px;min-height:360px;resize:vertical}
 .actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
 .tone{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.tone span{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;user-select:none}
+.tone span{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--g2);cursor:pointer;user-select:none}
 .tone span.on{background:var(--black);color:#fff;border-color:var(--black)}
 .tickets{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-right:auto}
 .tickets label{display:flex;gap:4px;align-items:center;margin:0;color:var(--black)}
 .note{border-radius:10px;padding:10px 12px;font-size:12px;margin-bottom:16px}
-.note.err{background:#fff0f2;border:1px solid var(--coral)}
-.note.info{background:#fff;border:1px solid #ddd}
-.note.ok{background:#eef8f2;border:1px solid var(--green)}
+.note.err{background:#fff;border:1.5px solid var(--coral)}
+.note.info{background:#fff;border:1px solid var(--g1)}
+.note.ok{background:#fff;border:1px solid var(--black)}
 .empty{text-align:center;padding:60px 20px;color:var(--grey)}
 .empty em{font-family:'Instrument Serif',serif;font-size:28px;color:var(--black);display:block;margin-bottom:8px}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite;vertical-align:-2px;margin-right:6px}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #000;border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite;vertical-align:-2px;margin-right:6px}
+.btn.dark .spin{border-color:#fff;border-top-color:transparent}
 .spin.dk{border-color:var(--coral);border-top-color:transparent}
 @keyframes r{to{transform:rotate(360deg)}}
-#rules .rl{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:6px 0;border-bottom:1px solid #eee}
-#rules .rl span{flex:1}#rules .rl.off span{color:#aaa;text-decoration:line-through}
+#rules .rl{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:6px 0;border-bottom:1px solid var(--g1)}
+#rules .rl span{flex:1}#rules .rl.off span{color:var(--g3);text-decoration:line-through}
 #rules .rl button,.cand button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
 .addrule{display:flex;gap:6px;margin-top:8px}.addrule input{flex:1}
 .addrule button{border:none;background:var(--black);color:#fff;border-radius:8px;padding:0 10px;cursor:pointer}
-.cand{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:12px;font-size:13px}
+.cand{background:#fff;border:1px solid var(--g1);border-radius:10px;padding:12px;margin-top:12px;font-size:13px}
 .cand label{display:flex;gap:8px;align-items:flex-start;color:var(--black);margin:6px 0;font-size:13px}
 #bubble{position:absolute;z-index:50;width:320px;background:#fff;border:1px solid var(--black);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:12px}
 #bubble .q{font-style:italic;color:var(--grey);margin-bottom:8px;max-height:48px;overflow:hidden}
 #bubble textarea{min-height:60px;font-size:13px}
 #bubble label{display:flex;gap:6px;align-items:center;margin:8px 0 0;color:var(--black)}
 #bubble .actions{margin-top:10px}
-.fbview ::selection{background:#ffc9d0}
-.fbview .chg{background:#ffe3e7;border-radius:4px;transition:background 2s}
+.fbview ::selection{background:var(--g1)}
+.fbview .chg{background:var(--g1);border-radius:4px;transition:background 2s}
 .hint{font-size:11px;color:var(--grey);margin:-4px 0 8px}
 button.tgx{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
 nav.tabs{display:flex;gap:6px}
-nav.tabs a{color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.6)}
-nav.tabs a.on{background:#fff;color:var(--coral);border-color:#fff}
-#draftBadge:not(:empty){background:#000;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+nav.tabs a{color:#000;text-decoration:none;font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid rgba(0,0,0,.5)}
+nav.tabs a.on{background:#000;color:#fff;border-color:#000}
+#draftBadge:not(:empty){background:var(--coral);color:#000;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
 .view{display:none}.view.on{display:block}
 .page{max-width:1100px;margin:0 auto;padding:24px 32px}
 .grid2{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}.page{padding:16px}}
-.dr{border-bottom:1px solid #eee;padding:12px 0;cursor:pointer}
+.dr{border-bottom:1px solid var(--g1);padding:12px 0;cursor:pointer}
 .dr:hover h4{color:var(--coral)}
 .dr h4{font-size:14px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
 .dr p{font-size:12px;color:var(--grey);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.ex{border-bottom:1px solid #eee;padding:10px 0;font-size:12px}
+.ex{border-bottom:1px solid var(--g1);padding:10px 0;font-size:12px}
 .ex .t{color:var(--grey);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;margin-top:4px;white-space:pre-wrap}
 details summary{cursor:pointer;font-size:12px;color:var(--grey)}
 </style>
@@ -141,10 +143,8 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
         <option value="flight" selected>Whole flight</option>
       </select>
       <details style="margin-top:12px"><summary>Settings</summary>
-        <div class="row2">
-          <div><label>Under-pacing after (days)</label><input type="number" id="streakN" min="1" max="10" value="3"></div>
-          <div><label>Signature</label><input type="text" id="sig" value="Enzo"></div>
-        </div>
+        <label>Under-pacing after (days)</label><input type="number" id="streakN" min="1" max="10" value="3">
+        <div class="muted" style="margin-top:8px">Daily delivery data covers the last 365 days. For older flights, totals and pacing still cover the whole flight; the chart and weekly insights start 365 days ago.</div>
       </details>
     </div>
 
@@ -208,6 +208,7 @@ const JIRA_SRV = "Atlassian Rovo";
 const DRIVE_SRV = "Google Drive";
 const SHEETS_SRV = "Google Sheets";
 const ADX_SRV = "adx-data-toolbox";
+const AUTHOR = "Enzo"; // the ops lead the feedback is written as (no signature is added: Jira shows the author)
 const P = "direct_product_line_delivery_tz.";
 const state = { crms: [], files: [], results: null, feedback: "", tone: (() => { try { return localStorage.getItem("csm_tone_v2") || "Factual"; } catch { return "Factual"; } })(), histId: null, editing: false, generated: "", rules: [], examples: [] };
 const $ = s => document.querySelector(s);
@@ -216,7 +217,11 @@ const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("e
 const pct = (n, d = 1) => n == null || isNaN(n) ? "—" : (+n).toFixed(d) + "%";
 const day = s => String(s || "").slice(0, 10);
 const dmy = s => { const d = day(s); return d ? d.slice(8,10) + "/" + d.slice(5,7) : "—"; };
-const isoDaysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+// Dates are computed in Europe/Madrid (the cubes' business timezone), not UTC — avoids an off-by-one between midnight and 2am.
+const isoDaysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }); };
+// Delivery history window read from the cubes. One row per CRM per day, so CRM IDs are queried in batches to stay under the row limit.
+const HISTORY_DAYS = 365, CRM_BATCH = 10;
+const batches = ids => { const out = []; for (let i = 0; i < ids.length; i += CRM_BATCH) out.push(ids.slice(i, i + CRM_BATCH)); return out; };
 
 /* ---------- capabilities ---------- */
 let mcpP = null, sampleP = null, dbP = null, userP = null;
@@ -323,14 +328,16 @@ async function fetchCube(ids) {
   const q = {
     dimensions: dims,
     measures: ["impressions","clicks","video_completions","units_delivered","ctr","vtr","vw"].map(m => P + m),
-    timeDimensions: [{ dimension: P + "dt", granularity: "day", dateRange: [isoDaysAgo(180), isoDaysAgo(1)] }],
-    filters: [{ member: P + "salesforce_crm_id", operator: "equals", values: ids }],
+    timeDimensions: [{ dimension: P + "dt", granularity: "day", dateRange: [isoDaysAgo(HISTORY_DAYS), isoDaysAgo(1)] }],
     order: [[P + "dt", "asc"]], limit: 5000
   };
-  let rows = await call(CUBE_SRV, "run_query", { query: q });
-  if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+  const res = await Promise.all(batches(ids).map(async b => {
+    let rows = await call(CUBE_SRV, "run_query", { query: { ...q, filters: [{ member: P + "salesforce_crm_id", operator: "equals", values: b }] } });
+    if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+    return rows || [];
+  }));
   const strip = r => { const o = {}; for (const k in r) o[k.replace("direct_product_line_delivery_tz__", "")] = r[k]; return o; };
-  return (rows || []).map(strip);
+  return res.flat().map(strip);
 }
 async function fetchJira(ids) {
   const jql = `project in (BNL, PT) AND (${ids.map(i => `summary ~ "\\"${i}\\"" OR cf[11704] ~ "${i}"`).join(" OR ")}) ORDER BY created DESC`;
@@ -461,13 +468,15 @@ async function fetchPmp(ids) {
   const dims = ["salesforce_crm_id","product_line_name","am","adops","advertiser","agency","product","payment_method","payment_value","booked_revenue","currency","first_kpi","first_kpi_value","start_dt","end_dt","days_left","salesforce_configured_impressions","impressions_accumulated","impressions_goal","impressions_pacing_ratio","adserver_ctr_accumulated","adserver_vtr_accumulated","adserver_vw_accumulated","budget_at_risk","budget_at_risk_eur","gross_revenue_spent_ratio","gross_revenue_accumulated","operational_status","country_sold"].map(d => Q + d);
   const q = {
     dimensions: dims, measures: ["impressions","adserver_clicks","adserver_ctr","adserver_vtr","adserver_vw","gross_revenue"].map(m => Q + m),
-    timeDimensions: [{ dimension: Q + "dt", granularity: "day", dateRange: [isoDaysAgo(180), isoDaysAgo(1)] }],
-    filters: [{ member: Q + "salesforce_crm_id", operator: "equals", values: ids }],
+    timeDimensions: [{ dimension: Q + "dt", granularity: "day", dateRange: [isoDaysAgo(HISTORY_DAYS), isoDaysAgo(1)] }],
     order: [[Q + "dt", "asc"]], limit: 5000
   };
-  let rows = await call(CUBE_SRV, "run_query", { query: q });
-  if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
-  return (rows || []).map(r0 => {
+  const res = await Promise.all(batches(ids).map(async b => {
+    let rows = await call(CUBE_SRV, "run_query", { query: { ...q, filters: [{ member: Q + "salesforce_crm_id", operator: "equals", values: b }] } });
+    if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+    return rows || [];
+  }));
+  return res.flat().map(r0 => {
     const r = {}; for (const k in r0) r[k.replace("pmp_product_line_delivery_tz__", "")] = r0[k];
     return { ...r, deal_type: "PMP",
       salesforce_configured_units: r.salesforce_configured_impressions, units_accumulated: r.impressions_accumulated,
@@ -496,7 +505,7 @@ function analysePerf(id, P, jira, streakN) {
   const pIdx = num(P.pacing_index_total); const pacing = pIdx == null ? null : 100 + pIdx;
   const deliveredPct = P.budget && T.spent != null ? T.spent / P.budget * 100 : null;
   const last3 = daily.slice(-3).map(d => d.units); const avg3 = last3.length ? last3.reduce((a, b) => a + b, 0) / last3.length : 0;
-  const projRaw = P.budget ? (T.spent + (daysLeft || 0) * avg3) / P.budget * 100 : null;
+  const projRaw = P.budget && T.spent != null ? (T.spent + (daysLeft || 0) * avg3) / P.budget * 100 : null;
   const bar = P.budget && projRaw != null ? P.budget * Math.max(0, 1 - projRaw / 100) : null;
   const kpis = [];
   const kName = (jira?.kpi1 || P.kpi_name || "").trim(), kVal = jira?.kpi1v || P.kpi_target;
@@ -577,8 +586,10 @@ function analyse(id, rows, jira, streakN) {
   else if ((pacing != null && pacing < 95) || kpiMiss.length) { status = "TO WATCH"; cls = "s-risk"; }
   else { status = "ON TRACK"; cls = "s-ok"; }
   const expectedToDate = pacing ? last.units_accumulated / (pacing / 100) : null;
+  // flight started before the history window: daily data (chart, weekly insights) only covers the last HISTORY_DAYS days
+  const truncated = !!day(last.start_dt) && day(last.start_dt) < isoDaysAgo(HISTORY_DAYS);
   return {
-    avg3, bar, barEur, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm, expectedToDate, type, ended, deliveredPct,
+    truncated, avg3, bar, barEur, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm, expectedToDate, type, ended, deliveredPct,
     projected: projRaw == null ? null : (type === "Direct" ? Math.min(projRaw, 100) : projRaw), projRaw,
     name: String(last.product_line_name || "").replace(/\t/g, " · "),
     csm: last.am || jira?.csm || ""
@@ -595,12 +606,12 @@ function chartSVG(daily, n) {
   d.forEach((x, i) => {
     const h = (x.units / max) * (H - 6);
     const under = x.goal > 0 && x.units < x.goal;
-    bars += `<rect x="${i * bw + pad}" y="${H - h}" width="${Math.max(bw - pad * 2, 1)}" height="${h}" rx="2" fill="${under ? "#f5b5bd" : "#FF6B7C"}"><title>${x.dt}: ${fmt(x.units)} / goal ${fmt(x.goal)}</title></rect>`;
+    bars += `<rect x="${i * bw + pad}" y="${H - h}" width="${Math.max(bw - pad * 2, 1)}" height="${h}" rx="2" fill="${under ? "#BCB8B6" : "#FF6B7C"}"><title>${x.dt}: ${fmt(x.units)} / goal ${fmt(x.goal)}</title></rect>`;
     if (x.goal) goalPts.push(`${i * bw + bw / 2},${H - (x.goal / max) * (H - 6)}`);
   });
   const line = goalPts.length > 1 ? `<polyline points="${goalPts.join(" ")}" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4 3"/>` : "";
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">${bars}${line}</svg>
-  <div class="legend"><span><i style="background:#FF6B7C"></i>Units / day &nbsp;<i style="background:#f5b5bd"></i>Below daily goal &nbsp;<i style="background:none;border-top:2px dashed #000;height:0;width:14px"></i>Daily goal</span><span>${dmy(d[0].dt)} → ${dmy(d[d.length - 1].dt)}</span></div>`;
+  <div class="legend"><span><i style="background:#FF6B7C"></i>Units / day &nbsp;<i style="background:#BCB8B6"></i>Below daily goal &nbsp;<i style="background:none;border-top:2px dashed #000;height:0;width:14px"></i>Daily goal</span><span>${dmy(d[0].dt)} → ${dmy(d[d.length - 1].dt)}</span></div>`;
 }
 function perfBlock(r) {
   const P = r.perf; if (!P) return "";
@@ -708,7 +719,7 @@ function renderResults() {
     <div class="kpi"><div class="v">${avgFlight == null ? "—" : Math.round(avgFlight) + "%"}</div><div class="l">Flight elapsed (avg.)</div></div></div>`);
   R.forEach(r => {
     if (r.missing) {
-      main.insertAdjacentHTML("beforeend", `<div class="card"><div class="crm-head"><div><h3>${esc(r.id)}</h3><p>No delivery data found in BigQuery for this CRM ID (direct or PMP)${r.jira ? ` · Jira <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a>` : ""}.</p></div><span class="pill s-na">NO DATA</span></div></div>`);
+      main.insertAdjacentHTML("beforeend", `<div class="card"><div class="crm-head"><div><h3>${esc(r.id)}</h3><p>${r.cubeDown ? "BigQuery could not be reached, so no delivery data for this CRM ID — try again in a moment" : "No delivery data found in BigQuery for this CRM ID (direct or PMP)"}${r.jira ? ` · Jira <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a>` : ""}.</p></div><span class="pill s-na">${r.cubeDown ? "BIGQUERY DOWN" : "NO DATA"}</span></div></div>`);
       return;
     }
     const L = r.last;
@@ -730,24 +741,26 @@ function renderResults() {
       ${sinceBlock(r)}
       ${insightsBlock(r)}
       ${chartSVG(r.daily, n)}
-      <div class="src">${esc(r.type)} · ${r.ended ? `Final delivery: <b>${pct(r.deliveredPct, 0)}</b>` : `Projected delivery: <b>${pct(proj, 0)}</b>${r.type === "Direct" && r.projRaw > 100 ? " (capped — direct stops at 100%, ahead of schedule)" : ""}`}${r.type === "PMP" && L.gross_revenue_spent_ratio != null ? ` · Budget spent: <b>${pct(L.gross_revenue_spent_ratio, 0)}</b>` : ""} · Budget at risk: <b>${r.ended ? "—" : r.barEur != null ? "€" + fmt(r.barEur) : r.bar != null ? fmt(r.bar) + " " + esc(L.currency || "") : "—"}</b> <span title="Projection based on the average of the last 3 days">(3-day avg)</span> · Sources: <b>BigQuery</b>${r.jira ? ` · <b>Jira ${esc(r.jira.key)}</b>` : ""}${state.files.filter(f => f.target === "all" || f.target === r.id).map(f => ` · <b>${esc(f.name)}</b>`).join("")}</div>
+      <div class="src">${esc(r.type)} · ${r.ended ? `Final delivery: <b>${pct(r.deliveredPct, 0)}</b>` : `Projected delivery: <b>${pct(proj, 0)}</b>${r.type === "Direct" && r.projRaw > 100 ? " (capped — direct stops at 100%, ahead of schedule)" : ""}`}${r.type === "PMP" && L.gross_revenue_spent_ratio != null ? ` · Budget spent: <b>${pct(L.gross_revenue_spent_ratio, 0)}</b>` : ""} · Budget at risk: <b>${r.ended ? "—" : r.barEur != null ? "€" + fmt(r.barEur) : r.bar != null ? fmt(r.bar) + " " + esc(L.currency || "") : "—"}</b> <span title="Projection based on the average of the last 3 days">(3-day avg)</span>${r.truncated ? ` · <b>Daily data limited to the last ${HISTORY_DAYS} days</b> (flight started ${dmy(L.start_dt)}; totals and pacing still cover the whole flight)` : ""} · Sources: <b>BigQuery</b>${r.jira ? ` · <b>Jira ${esc(r.jira.key)}</b>` : ""}${state.files.filter(f => f.target === "all" || f.target === r.id).map(f => ` · <b>${esc(f.name)}</b>`).join("")}</div>
     </div>`);
   });
   renderFeedbackCard();
 }
 function renderFeedbackCard(loading) {
   $("#fbCard")?.remove();
-  const tickets = (state.results || []).filter(r => r.jira).map(r => `<label><input type="checkbox" class="tk" value="${esc(r.jira.key)}" checked>${esc(r.jira.key)}</label>`).join("");
+  const H = state.histBase;
+  const keys = H ? H.tickets : [...new Set((state.results || []).filter(r => r.jira).map(r => r.jira.key))];
+  const tickets = keys.map(k => `<label><input type="checkbox" class="tk" value="${esc(k)}" ${H && (H.posted || []).includes(k) ? "" : "checked"}>${esc(k)}${H && (H.posted || []).includes(k) ? " (posted)" : ""}</label>`).join("");
   $("#main").insertAdjacentHTML("beforeend", `<div class="card feedback" id="fbCard">
-    <h2>Generated feedback · ${feedbackMode() === "end" ? "end-of-campaign report" : "mid-flight update"} · to post in Jira</h2>
-    <div class="tone">${["Factual", "Short", "Detailed"].map(t => `<span class="${t === state.tone ? "on" : ""}" data-t="${t}">${t}</span>`).join("")}</div>
+    <h2>${H ? "Saved feedback · " + esc(new Date(H.ts).toLocaleString("fr-BE")) : "Generated feedback"} · ${feedbackMode() === "end" ? "end-of-campaign report" : "mid-flight update"} · to post in Jira</h2>
+    ${H ? "" : `<div class="tone">${["Factual", "Short", "Detailed"].map(t => `<span class="${t === state.tone ? "on" : ""}" data-t="${t}">${t}</span>`).join("")}</div>`}
     ${!loading && !state.editing && state.feedback ? `<div class="hint">Tip: select a passage you don't like to tell Claude what's wrong.</div>` : ""}
     ${loading ? `<div class="muted" style="padding:20px 0"><span class="spin dk"></span>Writing the feedback…</div>` : (state.editing ? `<textarea id="fbText"></textarea>` : `<div class="fbview" id="fbView"></div>`)}
     <div class="actions">
       <div class="tickets">${tickets ? "Post on: " + tickets : ""}</div>
       <button class="btn sec" id="learn" ${state.generated && state.feedback.trim() !== state.generated.trim() ? "" : "disabled"} title="Compare my version with the generated one and propose style rules">Learn from my edits</button>
       <button class="btn sec" id="edit">${state.editing ? "Preview" : "Edit"}</button>
-      <button class="btn sec" id="regen">Regenerate</button>
+      ${H ? "" : `<button class="btn sec" id="regen">Regenerate</button>`}
       <button class="btn sec" id="copy">Copy</button>
       <button class="btn sec" id="pdf">Export PDF</button>
       <button class="btn dark" id="post" ${tickets ? "" : "disabled"}>Post as Jira comment →</button>
@@ -758,7 +771,7 @@ function renderFeedbackCard(loading) {
     $("#edit").onclick = () => { state.editing = !state.editing; if (!state.editing) saveHistory(); renderFeedbackCard(); };
   }
   document.querySelectorAll(".tone span").forEach(s => s.onclick = () => { state.tone = s.dataset.t; try { localStorage.setItem("csm_tone_v2", state.tone); } catch {} writeFeedback(); });
-  $("#regen").onclick = () => writeFeedback();
+  if ($("#regen")) $("#regen").onclick = () => writeFeedback();
   $("#pdf").onclick = exportPdf;
   $("#learn").onclick = learnFromEdits;
   $("#copy").onclick = async () => {
@@ -798,10 +811,10 @@ async function exportPdf() {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const ok = (state.results || []).filter(x => !x.missing);
-    const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands)$/, "")).filter(Boolean))].join(", ") || "Campaign report";
+    const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands)$/, "")).filter(Boolean))].join(", ") || state.histBase?.label || "Campaign report";
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;background:#EBE6E4;font-family:'Instrument Sans',sans-serif;color:#000";
-    wrap.innerHTML = `<div style="background:#FF6B7C;color:#fff;padding:22px 28px"><div style="font-size:12px;opacity:.9">Seedtag · ${feedbackMode() === "end" ? "End-of-campaign report" : "Campaign update"} · ${new Date().toLocaleDateString("en-GB")}</div><div style="font-size:24px;font-weight:600;margin-top:4px">${esc(title)}</div></div>
+    wrap.innerHTML = `<div style="background:#FF6B7C;color:#000;padding:22px 28px"><div style="font-size:12px;opacity:.9">Seedtag · ${feedbackMode() === "end" ? "End-of-campaign report" : "Campaign update"} · ${new Date().toLocaleDateString("en-GB")}</div><div style="font-size:24px;font-weight:600;margin-top:4px">${esc(title)}</div></div>
       <div style="padding:20px 28px"><div class="card" style="border-left:4px solid #FF6B7C"><div class="fbview" style="background:#fff;padding:0">${mdToHtml(state.feedback)}</div></div><div id="pdfCards"></div></div>`;
     document.body.appendChild(wrap);
     document.querySelectorAll("#main > .card:not(#fbCard)").forEach(c => {
@@ -830,6 +843,7 @@ async function exportPdf() {
 
 /* ---------- Claude writing ---------- */
 function feedbackMode() {
+  if (state.histBase?.mode) return state.histBase.mode;
   const m = $("#mode").value; if (m !== "auto") return m;
   const ok = (state.results || []).filter(r => !r.missing);
   return ok.length && ok.every(r => r.ended) ? "end" : "update";
@@ -848,6 +862,7 @@ function buildPrompt() {
       final_delivered_pct_of_booking: r.ended ? r.deliveredPct && +r.deliveredPct.toFixed(1) : undefined,
       budget_spent_pct: L.gross_revenue_spent_ratio,
       flight: `${day(L.start_dt)} → ${day(L.end_dt)}`, days_left: L.days_left,
+      daily_data_note: r.truncated ? `daily data only covers the last ${HISTORY_DAYS} days of the flight; cumulative totals cover the whole flight` : undefined,
       booked_units: L.salesforce_configured_units, delivered_units_to_date: L.units_accumulated,
       pacing_pct_to_date: r.pacing, projected_end_of_campaign_delivery_pct_of_booking_at_current_pace: r.ended ? undefined : r.projected && +r.projected.toFixed(1),
       budget_at_risk_eur: r.ended || r.barEur == null ? undefined : Math.round(r.barEur), // booked revenue not delivered if the last-3-days average pace continues
@@ -873,9 +888,9 @@ function buildPrompt() {
   const toneTxt = {
     "Short": `SHORT — the CSM reads it in 15 seconds. Per campaign: ONE or TWO sentences giving the verdict and the single most important reason, with at most 2 figures. No bullets. Whole message under ${mode === "end" ? 160 : 90} words + ${mode === "end" ? 50 : 30} words per extra campaign.`,
     "Detailed": `DETAILED — a real narrative. Per campaign: a short paragraph that tells the story (how it's going, why, what it means for the client, what we're watching or what we learned), then ${mode === "end" ? "the where-it-worked paragraph and the recommendations" : "nothing else"}. Explain causes when the data shows them (e.g. a weekend dip, a context driving clicks). Max 5 figures per campaign, each one interpreted.`,
-    "Factual": `FACTUAL — neutral, scannable, no storytelling and no adjectives. Per campaign, a "- " bullet per metric in the form "Metric: value vs target → verdict" (verdict = on track / above target / below target / behind / expected). Then one plain sentence with the conclusion. No greeting fluff beyond "Hi <name>,".`
+    "Factual": `FACTUAL — neutral, scannable, no storytelling and no adjectives. Per campaign, a "- " bullet per key metric (the ones that matter, not all of them) in the form "Metric: value vs target → verdict" (verdict = on track / above target / below target / behind / expected). Then one plain sentence with the conclusion. No greeting fluff beyond "Hi <name>,".`
   }[state.tone] || "";
-  const sig = $("#sig").value || "Enzo";
+  const sig = AUTHOR;
   return `You are ${sig}, Operations Market Lead BNL (Belgium + Netherlands) at Seedtag. Write a campaign status feedback for the CSM(s), to be posted as a comment in Jira.
 
 RULES
@@ -883,7 +898,7 @@ WRITING STYLE — this is the most important part:
 - Give a REAL FEEDBACK, not a data dump. For each campaign answer: is it going well or not, why, and what does it mean (for delivery, for the client, for the end of the flight)? Every figure you quote must serve that point and be interpreted ("CTR is **0.82%**, well above the 0.60% target — the audience is responding"). Never list numbers without saying what they mean. Leave out figures that don't change the message.
 - The chosen LENGTH/TONE below changes the format a lot — follow it strictly.
 - Write like a person, not a report. Picture ${sig} typing a quick comment to a colleague he works with every day: relaxed, direct, friendly. English.
-- Mostly short paragraphs of natural sentences. Use bullets only when listing 3+ similar items; never one bullet per metric.
+- Layout (paragraphs vs bullets) is set by the LENGTH/TONE below — follow it. Otherwise, prefer short paragraphs of natural sentences.
 - Don't recite every metric. Pick what matters, say what it means ("we're slightly behind, nothing worrying", "CTR is doing really well"), and move on. One idea per sentence, varied sentence length.
 - Plain words and contractions (we're, it's, didn't). Avoid stiff/AI phrasing: no "Overall,", "It's worth noting", "In summary", "I hope this finds you well", "Please don't hesitate", "Additionally", "Furthermore", "delve", "robust", "leverage", "ensure".
 - No emojis, no exclamation marks overload (one at most).
@@ -909,7 +924,7 @@ ${mode === "end" ? `- Include a section **Where it performed** written as exactl
 - Base the recommendations ONLY on what the data shows: "buying_engine_strategies", "targeting_insights" (contexts, publishers, devices), "flight_insights" (weekly trend, weekday pattern, best/worst days) and, for performance, the "tactics" breakdown. No generic advice.` : ""}
 - Delivery rules: DIRECT campaigns never deliver more than 100% of the booking — if projected delivery is 100% it means full delivery, possibly ahead of schedule; never talk about over-delivery for direct. PMP campaigns can run ahead of schedule early on, and usually slow down at the end, finishing around 90–95% of the budget because of fees — that is normal, not a problem.
 - Never recommend changing or adding creatives.
-- Use only the numbers provided. CTR with 2 decimals, other percentages with 1. Big numbers with spaces as thousands separators. Never invent data. If a KPI has no actual available, say it isn't measured in our data.
+- Use only the numbers provided. CTR with 2 decimals, other percentages with 1. Big numbers with spaces as thousands separators. Never invent data. If a KPI has no actual value or no target, leave it out.
 - Jira markdown only: **bold**, line breaks, "- " bullets. No # headings, no tables.
 - LENGTH/TONE: ${toneTxt}
 - ${mode === "end" ? "Period: whole flight." : "Focus period: " + (period === "flight" ? "whole flight" : "last " + period + " days") + "."} Today is ${isoDaysAgo(0)}; data is up to yesterday.
@@ -1273,17 +1288,23 @@ function renderHistory(docs) {
     m.textContent = state.histAll ? "Show less" : `Show all (${docs.length})`; m.onclick = () => { state.histAll = !state.histAll; renderHistory(docs); }; box.appendChild(m); }
 }
 function openHistory(d) {
+  // Reopen a saved feedback as an editable, copyable, postable text (no fresh data: hit Generate feedback for that).
   state.crms = [...(d.crms || [])]; renderChips(); renderFiles();
-  const main = $("#main"); main.innerHTML = "";
-  main.insertAdjacentHTML("beforeend", `<div class="note info">Saved feedback from ${esc(new Date(d.ts).toLocaleString("fr-BE"))}${d.posted?.length ? " · posted on " + esc(d.posted.join(", ")) : ""}. Hit <b>Generate feedback</b> for a fresh analysis.</div>
-    <div class="card feedback"><h2>Saved feedback</h2><textarea readonly style="width:100%;min-height:320px;background:var(--cream);border:none;border-radius:10px;padding:16px;font:inherit;line-height:1.55">${esc(d.feedback)}</textarea></div>`);
+  const jiraMap = d.jira || {};
+  state.histBase = { ...d, tickets: [...new Set([...Object.values(jiraMap).map(j => j.key), ...(d.posted || [])].filter(Boolean))] };
+  state.results = (d.crms || []).map(id => ({ id, missing: true, jira: jiraMap[id] || null }));
+  state.histId = d.id; state.draftId = null; state.feedback = d.feedback || ""; state.generated = state.feedback; state.editing = false;
+  $("#main").innerHTML = `<div class="note info">Saved feedback from ${esc(new Date(d.ts).toLocaleString("fr-BE"))}${d.posted?.length ? " · posted on " + esc(d.posted.join(", ")) : ""}. You can edit, copy, export or post it. Hit <b>Generate feedback</b> for a fresh analysis.</div>`;
+  renderFeedbackCard();
 }
 async function saveHistory(posted) {
   if (!histCol || !state.feedback) return;
   try {
     if (!state.histId) state.histId = "fb_" + Date.now();
     const ok = (state.results || []).filter(r => !r.missing);
-    const doc = { ts: Date.now(), crms: state.results.map(r => r.id), label: ok[0]?.last?.advertiser?.replace(/ - (Belgium|Netherlands)$/, "") || "", feedback: state.feedback,
+    const H = state.histBase;
+    const doc = H ? { ts: Date.now(), crms: H.crms || [], label: H.label || "", feedback: state.feedback, statuses: H.statuses || {}, snap: H.snap || {}, jira: H.jira || {}, mode: H.mode || "update" } : { ts: Date.now(), mode: feedbackMode(),
+      jira: Object.fromEntries(state.results.filter(r => r.jira).map(r => [r.id, { key: r.jira.key, url: r.jira.url, csm: r.jira.csm || "", csmId: r.jira.csmId || "" }])), crms: state.results.map(r => r.id), label: ok[0]?.last?.advertiser?.replace(/ - (Belgium|Netherlands)$/, "") || "", feedback: state.feedback,
       statuses: Object.fromEntries(state.results.map(r => [r.id, r.status || "NO DATA"])),
       snap: Object.fromEntries(state.results.filter(r => !r.missing).map(r => [r.id, JSON.parse(JSON.stringify(snapshotOf(r)))])) };
     const prev = histDocs.find(x => x.id === state.histId);
@@ -1383,52 +1404,59 @@ async function run(opts = {}) {
   const pending = $("#crmInput").value.trim(); if (pending) { addCrms(pending); $("#crmInput").value = ""; }
   if (!state.crms.length) { note("Add at least one CRM ID.", "err"); return; }
   const btn = $("#go"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Reading BigQuery & Jira…`;
-  state.histId = null; state.feedback = ""; state.draftId = null;
+  state.histId = null; state.feedback = ""; state.draftId = null; state.histBase = null;
   $("#main").innerHTML = `<div class="card empty"><span class="spin dk"></span>Fetching data for ${state.crms.map(esc).join(", ")}…</div>`;
   try {
     const ids = [...state.crms];
+    // Each source can fail on its own: collect the warnings and keep going with what answered (shown once the results are rendered).
+    const warns = [], warn = (m, t = "err") => warns.push([m, t]);
+    let cubeDown = false;
     const [rows, jira] = await Promise.all([
-      fetchCube(ids),
-      fetchJira(ids).catch(e => { note("Jira: " + e.message, "err"); return {}; })
+      fetchCube(ids).catch(e => { cubeDown = true; warn("BigQuery (direct): " + e.message); return []; }),
+      fetchJira(ids).catch(e => { warn("Jira: " + e.message); return {}; })
     ]);
     const missing = ids.filter(id => !rows.some(r => String(r.salesforce_crm_id) === id));
-    if (missing.length) { try { rows.push(...await fetchPmp(missing)); } catch (e) { note("PMP lookup: " + e.message, "err"); } }
+    if (missing.length) { try { rows.push(...await fetchPmp(missing)); } catch (e) { cubeDown = true; warn("BigQuery (PMP): " + e.message); } }
     const pt = jira._pt || {}, perf = {};
     if (Object.keys(pt).length) {
       btn.innerHTML = `<span class="spin"></span>Reading internal reports…`;
       await Promise.all(ids.filter(id => pt[id]).map(async id => {
-        try { perf[id] = await fetchInternalReport(pt[id]); if (!perf[id]) note(`No internal report found for ${pt[id]}.`, "info"); }
-        catch (e) { note(`Internal report ${pt[id]}: ${e.message}`, "err"); }
+        try { perf[id] = await fetchInternalReport(pt[id]); if (!perf[id]) warn(`No internal report found for ${pt[id]}.`, "info"); }
+        catch (e) { warn(`Internal report ${pt[id]}: ${e.message}`); }
       }));
     }
     const streakN = Math.max(1, +$("#streakN").value || 3);
     state.results = ids.map(id => {
       const own = rows.filter(r => String(r.salesforce_crm_id) === id);
       if (!own.length && perf[id]) return analysePerf(id, perf[id], jira[id], streakN);
-      const res = analyse(id, own, jira[id], streakN); if (perf[id] && !res.missing) res.perf = perf[id]; return res;
+      const res = analyse(id, own, jira[id], streakN); if (perf[id] && !res.missing) res.perf = perf[id];
+      if (res.missing && cubeDown) res.cubeDown = true;
+      return res;
     });
     const wantEnd = $("#mode").value === "end" || ($("#mode").value === "auto" && state.results.filter(x => !x.missing).every(x => x.ended));
     const tgt = state.results.filter(x => !x.missing && x.type !== "Performance" && (x.ended || wantEnd));
-    if (tgt.length) {
-      btn.innerHTML = `<span class="spin"></span>Reading targeting insights…`;
-      await Promise.all(tgt.map(async x => { try { x.targeting = await fetchTargeting(x);
-        if (x.targeting) { x.tgtMetrics = x.targeting.isVideo ? ["viewability", "vcr"] : ["ctr", "viewability"]; x.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); } } catch (e) { note(`Targeting insights ${x.id}: ${e.message}`, "err"); } }));
-    }
     const se = state.results.filter(x => !x.missing && x.type !== "Performance");
-    if (se.length) {
-      btn.innerHTML = `<span class="spin"></span>Reading Buying Engine strategies…`;
-      await Promise.all(se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } }));
+    if (tgt.length || se.length) {
+      btn.innerHTML = `<span class="spin"></span>Reading ${tgt.length ? "targeting insights & " : ""}strategies…`;
+      // targeting (data lake) and Buying Engine strategies (cube) are independent: fetch them at the same time
+      await Promise.all([
+        ...tgt.map(async x => { try { x.targeting = await fetchTargeting(x);
+          if (x.targeting) { x.tgtMetrics = x.targeting.isVideo ? ["viewability", "vcr"] : ["ctr", "viewability"]; x.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); } } catch (e) { warn(`Targeting insights ${x.id}: ${e.message}`); } }),
+        ...se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } })
+      ]);
     }
     renderResults();
+    warns.forEach(([m, t]) => note(m, t));
     if (opts.draft) { note("Draft prepared on " + new Date(opts.draft.ts).toLocaleString("fr-BE") + " — figures above are refreshed, the text isn't. Regenerate if needed.", "info"); state.feedback = opts.draft.text; state.generated = opts.draft.text; state.editing = false; state.draftId = opts.draft.id; renderFeedbackCard(); return; }
+    if (!state.results.some(r => !r.missing)) return; // nothing to write about
     btn.innerHTML = `<span class="spin"></span>Writing feedback…`;
     await writeFeedback();
   } catch (e) {
     $("#main").innerHTML = `<div class="note err">Could not load data: ${esc(e.message)}</div>`;
   } finally { btn.disabled = false; btn.textContent = "Generate feedback"; }
 }
-$("#period").onchange = () => state.results && renderResults();
-$("#mode").onchange = () => { if (state.results) { renderResults(); writeFeedback(); } };
+$("#period").onchange = () => state.results && !state.histBase && renderResults();
+$("#mode").onchange = () => { if (state.results && !state.histBase) { renderResults(); writeFeedback(); } };
 
 initHistory();
 </script>
