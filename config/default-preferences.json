@@ -1,15 +1,65 @@
 {
   "path": "style/rules",
   "rules": [
-    { "on": true, "text": "Cut explanatory glosses that restate a figure, such as 'meaning full delivery, possibly ahead of schedule'. State the number and stop." },
-    { "on": true, "text": "Omit metrics with no target or no data, such as 'no target set' or 'VTR isn't measured'. Report only what is available and relevant." },
-    { "on": true, "text": "Leave out day-by-day breakdowns of delivery above or below the daily goal. Mention only the exceptions that support the pacing conclusion." },
-    { "on": true, "text": "Don't list absent items like missing 3rd party measurement. Include only information that informs the CSM's next action." },
-    { "on": true, "text": "Keep each bullet to the key metric, its comparison to target, and a brief recent trend. Favor concise, scannable bullets." },
-    { "on": true, "text": "Open each campaign with the verdict (on track / behind / ahead / off target), then give the reason." },
-    { "on": true, "text": "Never mention internal metrics: margin, media cost, DSP or platform fees, bids." },
-    { "on": true, "text": "Use 'VTR' (not VCR) for video completion rate, and 'viewability' for viewability." },
-    { "on": true, "text": "Mention days left only when it matters for the pacing conclusion." },
-    { "on": true, "text": "When a campaign is behind or off target, say what we're monitoring, without turning it into a recommendation." }
+    {
+      "on": true,
+      "text": "Cut explanatory glosses that restate a figure, such as 'meaning full delivery, possibly ahead of schedule'. State the number and stop."
+    },
+    {
+      "on": true,
+      "text": "Omit metrics with no target or no data, such as 'no target set' or 'VTR isn't measured'. Report only what is available and relevant."
+    },
+    {
+      "on": true,
+      "text": "Leave out day-by-day breakdowns of delivery above or below the daily goal. Mention only the exceptions that support the pacing conclusion."
+    },
+    {
+      "on": true,
+      "text": "Don't list absent items like missing 3rd party measurement. Include only information that informs the CSM's next action."
+    },
+    {
+      "on": true,
+      "text": "Keep each bullet to the key metric, its comparison to target, and a brief recent trend. Favor concise, scannable bullets."
+    },
+    {
+      "on": true,
+      "text": "Open each campaign with the verdict (on track / behind / ahead / off target), then give the reason."
+    },
+    {
+      "on": true,
+      "text": "Never mention internal metrics: margin, media cost, DSP or platform fees, bids."
+    },
+    {
+      "on": true,
+      "text": "Use 'VTR' (not VCR) for video completion rate, and 'viewability' for viewability."
+    },
+    {
+      "on": true,
+      "text": "Mention days left only when it matters for the pacing conclusion."
+    },
+    {
+      "on": true,
+      "text": "When a campaign is behind or off target, say what we're monitoring, without turning it into a recommendation."
+    },
+    {
+      "on": true,
+      "text": "Order campaigns by urgency: under pacing first, then to watch, then on track."
+    },
+    {
+      "on": true,
+      "text": "For campaigns ending within 7 days, state the expected final delivery in %."
+    },
+    {
+      "on": true,
+      "text": "When a KPI is above or below target, give the gap in relative terms (e.g. +12% vs target)."
+    },
+    {
+      "on": true,
+      "text": "Round impressions above 1 million to one decimal (1.2M)."
+    },
+    {
+      "on": true,
+      "text": "Write dates as DD/MM."
+    }
   ]
 }
