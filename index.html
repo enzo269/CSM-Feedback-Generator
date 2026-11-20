@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSM Feedback Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+html{color-scheme:light}
+:root{--coral:#FF6B7C;--cream:#EBE6E4;--white:#FFF;--black:#000;--grey:#6b6563;--green:#2E9E6A;--amber:#E8A33D;--blue:#5B7FA6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--black);font-size:14px;min-height:100vh}
+header{background:var(--coral);color:#fff;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;font-weight:600}
+header h1 em{font-family:'Instrument Serif',serif;font-weight:400;font-size:24px}
+header .tag{font-size:12px;opacity:.9}
+.wrap{display:grid;grid-template-columns:330px 1fr;gap:20px;padding:24px 32px;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;padding:16px}}
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--grey);margin-bottom:12px;font-weight:600}
+label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid #ddd;border-radius:10px;padding:8px;cursor:text}
+.chip{background:var(--cream);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;display:inline-flex;align-items:center}
+.chip button{border:none;background:none;color:var(--coral);margin-left:6px;cursor:pointer;font-weight:700;font-size:13px}
+.chips input{border:none;outline:none;font:inherit;flex:1;min-width:90px;background:transparent;color:#000;padding:2px 4px}
+.drop{border:2px dashed var(--coral);border-radius:12px;padding:18px;text-align:center;color:var(--grey);font-size:12px;background:#fff7f8;cursor:pointer}
+.drop.over{background:#ffe3e7}
+.file{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:6px 0;border-bottom:1px solid #eee}
+.file .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.file select{width:auto;padding:2px 4px;font-size:11px}
+.file button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
+select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid #ddd;border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
+input,select,textarea{color:#000;-webkit-text-fill-color:#000}
+::placeholder{color:#9a9391;-webkit-text-fill-color:#9a9391;opacity:1}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{background:var(--coral);color:#fff;border:none;border-radius:24px;padding:12px 20px;font:inherit;font-weight:600;width:100%;margin-top:14px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sec{background:#fff;color:var(--black);border:1px solid var(--black);width:auto;margin:0;padding:9px 16px}
+.btn.dark{background:var(--black);width:auto;margin:0;padding:9px 16px}
+.hist .h{font-size:12px;padding:8px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.hist .h:hover{color:var(--coral)}
+.hist .h span:last-child{color:var(--grey);white-space:nowrap}
+.muted{color:var(--grey);font-size:12px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.summary{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border-radius:14px;padding:16px}
+.kpi .v{font-size:26px;font-weight:600}
+.kpi .l{font-size:12px;color:var(--grey)}
+.crm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.crm-head h3{font-size:16px;font-weight:600}
+.crm-head p{font-size:12px;color:var(--grey);margin-top:3px}
+.crm-head a{color:var(--grey)}
+.pill{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;color:#fff;white-space:nowrap}
+.s-ok{background:var(--green)}.s-risk{background:var(--amber)}.s-ko{background:var(--coral)}.s-na{background:var(--blue)}.s-end{background:#888}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;color:var(--grey);font-weight:600;padding:6px 8px;text-transform:uppercase}
+td{padding:8px}
+tr:nth-child(even) td{background:var(--cream)}
+.d-ok{color:var(--green);font-weight:600}.d-ko{color:var(--coral);font-weight:600}
+.chart{margin:14px 0 4px}
+.legend{font-size:11px;color:var(--grey);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.src{font-size:11px;color:var(--grey);margin-top:10px}
+.src b{color:var(--black);font-weight:500}
+.feedback{border-left:4px solid var(--coral)}
+.fbview{background:var(--cream);border-radius:10px;padding:16px 18px;line-height:1.6;font-size:13.5px;min-height:200px;color:#000}
+.fbview p{margin:0 0 10px}.fbview ul{margin:0 0 10px 18px}.fbview li{margin:2px 0}
+.feedback textarea{color:#000;background:var(--cream);border:none;border-radius:10px;padding:16px;line-height:1.55;font-size:13.5px;min-height:360px;resize:vertical}
+.actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.tone{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tone span{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;user-select:none}
+.tone span.on{background:var(--black);color:#fff;border-color:var(--black)}
+.tickets{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-right:auto}
+.tickets label{display:flex;gap:4px;align-items:center;margin:0;color:var(--black)}
+.note{border-radius:10px;padding:10px 12px;font-size:12px;margin-bottom:16px}
+.note.err{background:#fff0f2;border:1px solid var(--coral)}
+.note.info{background:#fff;border:1px solid #ddd}
+.note.ok{background:#eef8f2;border:1px solid var(--green)}
+.empty{text-align:center;padding:60px 20px;color:var(--grey)}
+.empty em{font-family:'Instrument Serif',serif;font-size:28px;color:var(--black);display:block;margin-bottom:8px}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite;vertical-align:-2px;margin-right:6px}
+.spin.dk{border-color:var(--coral);border-top-color:transparent}
+@keyframes r{to{transform:rotate(360deg)}}
+#rules .rl{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:6px 0;border-bottom:1px solid #eee}
+#rules .rl span{flex:1}#rules .rl.off span{color:#aaa;text-decoration:line-through}
+#rules .rl button,.cand button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
+.addrule{display:flex;gap:6px;margin-top:8px}.addrule input{flex:1}
+.addrule button{border:none;background:var(--black);color:#fff;border-radius:8px;padding:0 10px;cursor:pointer}
+.cand{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:12px;font-size:13px}
+.cand label{display:flex;gap:8px;align-items:flex-start;color:var(--black);margin:6px 0;font-size:13px}
+#bubble{position:absolute;z-index:50;width:320px;background:#fff;border:1px solid var(--black);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:12px}
+#bubble .q{font-style:italic;color:var(--grey);margin-bottom:8px;max-height:48px;overflow:hidden}
+#bubble textarea{min-height:60px;font-size:13px}
+#bubble label{display:flex;gap:6px;align-items:center;margin:8px 0 0;color:var(--black)}
+#bubble .actions{margin-top:10px}
+.fbview ::selection{background:#ffc9d0}
+.fbview .chg{background:#ffe3e7;border-radius:4px;transition:background 2s}
+.hint{font-size:11px;color:var(--grey);margin:-4px 0 8px}
+button.tgx{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
+nav.tabs{display:flex;gap:6px}
+nav.tabs a{color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.6)}
+nav.tabs a.on{background:#fff;color:var(--coral);border-color:#fff}
+#draftBadge:not(:empty){background:#000;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+.view{display:none}.view.on{display:block}
+.page{max-width:1100px;margin:0 auto;padding:24px 32px}
+.grid2{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}.page{padding:16px}}
+.dr{border-bottom:1px solid #eee;padding:12px 0;cursor:pointer}
+.dr:hover h4{color:var(--coral)}
+.dr h4{font-size:14px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.dr p{font-size:12px;color:var(--grey);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ex{border-bottom:1px solid #eee;padding:10px 0;font-size:12px}
+.ex .t{color:var(--grey);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;margin-top:4px;white-space:pre-wrap}
+details summary{cursor:pointer;font-size:12px;color:var(--grey)}
+</style>
+</head>
+<body>
+<header>
+  <h1>CSM Feedback <em>Generator</em></h1>
+  <nav class="tabs"><a href="#feedback" data-v="feedback">Feedback</a><a href="#drafts" data-v="drafts">Monday drafts <span id="draftBadge"></span></a><a href="#preferences" data-v="preferences">My preferences</a></nav>
+</header>
+
+<div class="view" id="v-feedback"><div class="wrap">
+  <aside>
+    <div class="card">
+      <h2>1 · Campaigns</h2>
+      <label style="margin-top:0">CRM IDs (Product Line ID)</label>
+      <div class="chips" id="chips"><input id="crmInput" placeholder="Paste or type, Enter…" inputmode="numeric"></div>
+      <button class="btn sec" id="browse" style="width:100%;margin-top:10px">Browse live campaigns</button>
+      <label>Feedback type</label>
+      <select id="mode">
+        <option value="auto" selected>Auto (end report if all campaigns ended)</option>
+        <option value="update">Mid-flight update</option>
+        <option value="end">End-of-campaign report</option>
+      </select>
+      <label>Focus period (mid-flight)</label>
+      <select id="period">
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="flight" selected>Whole flight</option>
+      </select>
+      <details style="margin-top:12px"><summary>Settings</summary>
+        <div class="row2">
+          <div><label>Under-pacing after (days)</label><input type="number" id="streakN" min="1" max="10" value="3"></div>
+          <div><label>Signature</label><input type="text" id="sig" value="Enzo"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>2 · Extra KPIs</h2>
+      <div class="drop" id="drop">Drop PNG, JPG, Excel or CSV here<br>or click to browse<br><span style="font-size:11px">(brand lift, IAS, third-party reports…)</span></div>
+      <input type="file" id="fileIn" multiple accept=".png,.jpg,.jpeg,.webp,.csv,.xlsx,.xls" hidden>
+      <div id="files"></div>
+      <label>Free context (optional)</label>
+      <textarea id="ctx" rows="3" placeholder="e.g. creative swap on 14/11, client asked about VTR…"></textarea>
+    </div>
+
+    <button class="btn" id="go">Generate feedback</button>
+
+    <div class="card hist" style="margin-top:16px">
+      <h2>History</h2>
+      <div id="hist"><div class="muted">No feedback yet.</div></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <div class="card empty"><em>Ready when you are.</em>Add one or more CRM IDs, attach any extra KPI files, then hit <b>Generate feedback</b>.</div>
+  </main>
+</div></div>
+
+<div class="view" id="v-drafts"><div class="page grid2">
+  <div class="card">
+    <h2>Campaigns to draft</h2>
+    <div class="muted" id="watchInfo" style="margin:-6px 0 10px"></div>
+    <div id="watch" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px"></div>
+    <div class="addrule"><input type="text" id="watchInput" placeholder="Add CRM IDs (paste several)…"><button id="watchAddBtn">+</button></div>
+    <button class="btn sec" id="watchAdd" style="width:100%;margin-top:10px;padding:8px 10px;font-size:12px">+ Add the CRM IDs of the Feedback tab</button>
+    <button class="btn sec" id="watchBrowse" style="width:100%;margin-top:8px;padding:8px 10px;font-size:12px">Pick from live campaigns</button>
+    <div class="muted" style="margin-top:12px">Drafts are written every Monday at 7:42 for these campaigns while they're live, one per CSM + advertiser. Nothing is posted until you open a draft and post it.</div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><h2 style="margin:0">Drafts</h2>
+      <select id="dOps" style="width:auto"><option value="">All ops</option></select></div>
+    <div id="drafts"><div class="muted">No drafts yet.</div></div>
+  </div>
+</div></div>
+
+<div class="view" id="v-preferences"><div class="page grid2">
+  <div class="card">
+    <h2>My preferences</h2>
+    <div class="muted" style="margin:-6px 0 8px">Applied to every feedback, all types and tones. Double-click a rule to edit it, untick to pause it.</div>
+    <div id="rules"><div class="muted">No rules yet. Edit a feedback, then use “Learn from my edits”, or tick “Remember” in a comment bubble.</div></div>
+    <div class="addrule"><input type="text" id="newRule" placeholder="Add a rule manually…"><button id="addRule">+</button></div>
+  </div>
+  <div class="card">
+    <h2>Approved examples</h2>
+    <div class="muted" id="exCount" style="margin:-6px 0 8px"></div>
+    <div id="exList"></div>
+  </div>
+</div></div>
+
+<script>
+const CLOUD = "f27c696c-ab8c-4c73-896e-079ad4bb1763";
+const CUBE_SRV = "business-data-cube-mcp";
+const JIRA_SRV = "Atlassian Rovo";
+const DRIVE_SRV = "Google Drive";
+const SHEETS_SRV = "Google Sheets";
+const ADX_SRV = "adx-data-toolbox";
+const P = "direct_product_line_delivery_tz.";
+const state = { crms: [], files: [], results: null, feedback: "", tone: (() => { try { return localStorage.getItem("csm_tone_v2") || "Factual"; } catch { return "Factual"; } })(), histId: null, editing: false, generated: "", rules: [], examples: [] };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US").replace(/,/g, " ");
+const pct = (n, d = 1) => n == null || isNaN(n) ? "—" : (+n).toFixed(d) + "%";
+const day = s => String(s || "").slice(0, 10);
+const dmy = s => { const d = day(s); return d ? d.slice(8,10) + "/" + d.slice(5,7) : "—"; };
+const isoDaysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+
+/* ---------- capabilities ---------- */
+let mcpP = null, sampleP = null, dbP = null, userP = null;
+const cap = n => { try { return window.claude?.use ? window.claude.use(n) : Promise.resolve(null); } catch { return Promise.resolve(null); } };
+function caps() {
+  mcpP ??= cap("mcp"); sampleP ??= cap("sample"); dbP ??= cap("db"); userP ??= cap("user");
+}
+
+/* unwrap any MCP payload into JS data */
+function unwrap(p) {
+  if (p == null) return p;
+  if (typeof p === "string") { try { return unwrap(JSON.parse(p)); } catch { return p; } }
+  if (Array.isArray(p) && p.length && p[0] && p[0].type === "text") return unwrap(p.map(x => x.text).join(""));
+  if (typeof p === "object") {
+    if (Array.isArray(p.content) && p.content[0]?.type === "text") return unwrap(p.content.map(x => x.text).join(""));
+    if (typeof p.result === "string" && Object.keys(p).length <= 2) return unwrap(p.result);
+    if (p.structuredContent) return unwrap(p.structuredContent);
+  }
+  return p;
+}
+async function call(server, tool, input) {
+  caps();
+  const mcp = await mcpP;
+  if (!mcp) throw new Error("Connectors unavailable in this view (open the artifact on claude.ai while signed in).");
+  try {
+    const r = await mcp.callTool(server, tool, input);
+    return unwrap(r && "payload" in r ? r.payload : r);
+  } catch (e) {
+    throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}`);
+  }
+}
+
+/* ---------- inputs: CRM chips ---------- */
+function renderChips() {
+  const box = $("#chips"), inp = $("#crmInput");
+  box.querySelectorAll(".chip").forEach(c => c.remove());
+  state.crms.forEach(id => {
+    const c = document.createElement("span"); c.className = "chip"; c.textContent = id;
+    const b = document.createElement("button"); b.textContent = "×"; b.onclick = () => { state.crms = state.crms.filter(x => x !== id); renderChips(); renderFiles(); };
+    c.appendChild(b); box.insertBefore(c, inp);
+  });
+}
+function addCrms(text) {
+  (text.match(/\d{5,8}/g) || []).forEach(id => { if (!state.crms.includes(id)) state.crms.push(id); });
+  renderChips(); renderFiles();
+}
+$("#chips").onclick = () => $("#crmInput").focus();
+$("#crmInput").addEventListener("keydown", e => {
+  if (["Enter", ",", " ", "Tab"].includes(e.key) && e.target.value.trim()) { e.preventDefault(); addCrms(e.target.value); e.target.value = ""; }
+  if (e.key === "Backspace" && !e.target.value && state.crms.length) { state.crms.pop(); renderChips(); renderFiles(); }
+});
+$("#crmInput").addEventListener("paste", e => { e.preventDefault(); addCrms(e.clipboardData.getData("text")); });
+$("#crmInput").addEventListener("blur", e => { if (e.target.value.trim()) { addCrms(e.target.value); e.target.value = ""; } });
+
+/* ---------- inputs: files ---------- */
+const drop = $("#drop");
+drop.onclick = () => $("#fileIn").click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); handleFiles(e.dataTransfer.files); };
+$("#fileIn").onchange = e => { handleFiles(e.target.files); e.target.value = ""; };
+
+async function handleFiles(list) {
+  for (const f of list) {
+    const ext = f.name.split(".").pop().toLowerCase();
+    const entry = { name: f.name, target: "all", kind: "", text: "", blob: null };
+    try {
+      if (["png", "jpg", "jpeg", "webp"].includes(ext)) { entry.kind = "image"; entry.blob = f; }
+      else if (ext === "csv") { entry.kind = "table"; entry.text = (await f.text()).slice(0, 25000); }
+      else if (["xlsx", "xls"].includes(ext)) {
+        if (!window.XLSX) throw new Error("Excel reader failed to load");
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        entry.kind = "table";
+        entry.text = wb.SheetNames.map(n => `## Sheet: ${n}\n` + XLSX.utils.sheet_to_csv(wb.Sheets[n])).join("\n\n").slice(0, 25000);
+      } else continue;
+      state.files.push(entry);
+    } catch (e) { note(`Could not read ${f.name}: ${e.message}`, "err"); }
+  }
+  renderFiles();
+}
+function renderFiles() {
+  const box = $("#files"); box.innerHTML = "";
+  state.files.forEach((f, i) => {
+    const d = document.createElement("div"); d.className = "file";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = (f.kind === "image" ? "🖼 " : "📊 ") + f.name;
+    const s = document.createElement("select");
+    ["all", ...state.crms].forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v === "all" ? "→ all" : "→ " + v; s.appendChild(o); });
+    if (f.target !== "all" && !state.crms.includes(f.target)) f.target = "all";
+    s.value = f.target; s.onchange = () => f.target = s.value;
+    const b = document.createElement("button"); b.textContent = "×"; b.onclick = () => { state.files.splice(i, 1); renderFiles(); };
+    d.append(n, s, b); box.appendChild(d);
+  });
+}
+
+/* ---------- notes ---------- */
+function note(msg, type = "info") {
+  const n = document.createElement("div"); n.className = "note " + type; n.textContent = msg;
+  $("#main").prepend(n); setTimeout(() => n.remove(), 9000);
+}
+
+/* ---------- data fetch ---------- */
+async function fetchCube(ids) {
+  const dims = ["salesforce_crm_id","product_line_name","am","adops","advertiser","agency","product","payment_method","payment_value","booked_revenue","currency","first_kpi","first_kpi_value","start_dt","end_dt","days_left","salesforce_configured_units","platform_configured_units","units_accumulated","units_goal","units_pacing_ratio","ctr_accumulated","vtr_accumulated","vw_accumulated","budget_at_risk","budget_at_risk_eur","operational_status","country_sold"].map(d => P + d);
+  const q = {
+    dimensions: dims,
+    measures: ["impressions","clicks","video_completions","units_delivered","ctr","vtr","vw"].map(m => P + m),
+    timeDimensions: [{ dimension: P + "dt", granularity: "day", dateRange: [isoDaysAgo(180), isoDaysAgo(1)] }],
+    filters: [{ member: P + "salesforce_crm_id", operator: "equals", values: ids }],
+    order: [[P + "dt", "asc"]], limit: 5000
+  };
+  let rows = await call(CUBE_SRV, "run_query", { query: q });
+  if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+  const strip = r => { const o = {}; for (const k in r) o[k.replace("direct_product_line_delivery_tz__", "")] = r[k]; return o; };
+  return (rows || []).map(strip);
+}
+async function fetchJira(ids) {
+  const jql = `project in (BNL, PT) AND (${ids.map(i => `summary ~ "\\"${i}\\"" OR cf[11704] ~ "${i}"`).join(" OR ")}) ORDER BY created DESC`;
+  const res = await call(JIRA_SRV, "searchJiraIssuesUsingJql", {
+    cloudId: CLOUD, jql, maxResults: 50, responseContentFormat: "markdown",
+    fields: ["summary","status","description","customfield_11704","customfield_11781","customfield_11782","customfield_11783","customfield_11784","customfield_12217","customfield_11759","customfield_10901","duedate"]
+  });
+  const nodes = res?.issues?.nodes || res?.issues || res?.nodes || [];
+  const map = {};
+  nodes.forEach(n => {
+    const f = n.fields || {};
+    const id = String(f.customfield_11704 || (f.summary || "").split("|")[0]).trim();
+    if (String(n.key).startsWith("PT-")) { (map._pt ||= {})[id] ||= n.key; return; }
+    if (!map[id]) map[id] = {
+      key: n.key, url: n.webUrl || `https://seedtag.atlassian.net/browse/${n.key}`, status: f.status?.name,
+      kpi1: (f.customfield_11781 || "").trim(), kpi1v: (f.customfield_11782 || "").trim(),
+      kpi2: (f.customfield_11783 || "").trim(), kpi2v: (f.customfield_11784 || "").trim(),
+      summary: f.summary || "", csm: f.customfield_12217?.displayName || "", csmId: f.customfield_12217?.accountId || "", brief: String(f.description || "").slice(0, 1500)
+    };
+  });
+  return map;
+}
+
+/* Performance internal report (Gsheet "PT-XXXX__…") — client-facing figures only (no media cost / margin) */
+const num = v => { if (v == null || v === "") return null; const s = String(v).replace(/[^0-9,.\-]/g, ""); if (!s) return null;
+  const x = parseFloat(s.includes(",") && s.includes(".") ? s.replace(/,/g, "") : s.replace(",", ".")); return isNaN(x) ? null : x; };
+async function fetchInternalReport(ptKey) {
+  const found = await call(DRIVE_SRV, "search_files", { query: `title contains '${ptKey}__' and mimeType = 'application/vnd.google-apps.spreadsheet'`, excludeContentSnippets: true, pageSize: 10 });
+  const files = (found?.files || []).filter(f => String(f.title || f.name || "").startsWith(ptKey + "__"));
+  if (!files.length) return null;
+  const file = files.sort((a, b) => String(b.modifiedTime).localeCompare(String(a.modifiedTime)))[0];
+  const get = range => call(SHEETS_SRV, "get_values", { spreadsheetId: file.id, range }).then(x => x?.values || []).catch(() => []);
+  const [jr, dc, mt] = await Promise.all([get("input_jira!A1:B10"), get("dCPX!A1:S502"), get("metrics!A1:AB80")]);
+  const info = Object.fromEntries(jr.map(([k, v]) => [String(k || "").replace(":", "").trim().toLowerCase(), String(v || "").trim()]));
+  // header row = row where col C is "Date"
+  const hi = dc.findIndex(row => String(row[2] || "").trim() === "Date");
+  const H = hi >= 0 ? dc[hi].map(x => String(x || "").trim()) : [];
+  const col = name => H.findIndex(x => x.toLowerCase() === name.toLowerCase());
+  const cI = col("Impressions"), cC = col("Clicks"), cS = col("Client's spent"), cP = col("Client's CPC/CPM"), cK = col("KPI"), cX = col("CPX");
+  const pick = row => ({ imps: num(row[cI]), clicks: num(row[cC]), spent: num(row[cS]), cpc_cpm: num(row[cP]), kpi: num(row[cK]), cpx: num(row[cX]) });
+  const totalRow = dc.find(row => String(row[2] || "").trim() === "Total");
+  const daily = hi >= 0 ? dc.slice(hi + 1).filter(row => /\d{2}\/\d{2}\/\d{4}/.test(row[2] || "")).map(row => {
+    const [d, m, y] = row[2].split("/"); return { dt: `${y}-${m}-${d}`, ...pick(row) }; }).filter(x => x.dt < isoDaysAgo(0) && (x.imps || x.spent)) : [];
+  // pacing labels
+  let pacingTotal = null, pacingYday = null, pacingLabel = "", budget = null, dailyTarget = null;
+  dc.slice(0, hi > 0 ? hi : 10).forEach((row, i) => {
+    row.forEach((c, j) => {
+      const t = String(c || "").trim();
+      if (t === "Total pacing index") { pacingTotal = (dc[i + 1] || [])[j] || null; pacingLabel = String(row[j + 2] || "").trim(); }
+      if (t === "Yesterday pacing") pacingYday = (dc[i + 1] || [])[j] || null;
+      if (t === "Budget") budget = num(row[j + 1]);
+      if (t === "Daily advertiser") dailyTarget = num(row[j + 1]);
+    });
+  });
+  // tactics breakdown (metrics tab, first table)
+  const th = mt.findIndex(row => row.some(c => /SUM of Impression/i.test(c || "")));
+  const tactics = [];
+  if (th >= 0) {
+    const hdr = mt[th].map(x => String(x || "").trim()); const c0 = hdr.findIndex(x => /SUM of Impression/i.test(x)) - 1;
+    for (let i = th + 1; i < mt.length; i++) {
+      const row = mt[i]; const name = String(row[c0] || "").trim();
+      if (!row.length || /grand total/i.test(name)) break;
+      if (!name) continue;
+      const o = { tactic: name }; hdr.forEach((hname, j) => { if (j > c0 && hname) o[hname.replace(/^SUM of /i, "").toLowerCase()] = row[j]; });
+      tactics.push(o);
+    }
+  }
+  return {
+    file: file.title || file.name, url: file.viewUrl || `https://docs.google.com/spreadsheets/d/${file.id}`,
+    price_type: info["price type"], price: info["price"], kpi_name: (info["kpi"] || "").trim(), kpi_target: info["kpi value"],
+    start: info["start date"], end: info["end date"], budget: budget ?? num(info["budget"]), daily_target: dailyTarget,
+    total: totalRow ? pick(totalRow) : null, pacing_index_total: pacingTotal, pacing_index_yesterday: pacingYday, pacing_label: pacingLabel,
+    daily, tactics
+  };
+}
+
+/* Targeting insights: context / publisher / device, from the post-campaign analysis table (Seedtag ad server) */
+async function fetchTargeting(r) {
+  const F = "direct_flight_delivery_tz.";
+  const s = day(r.last.start_dt), e = day(r.last.end_dt) < isoDaysAgo(1) ? day(r.last.end_dt) : isoDaysAgo(1);
+  let ex = await call(CUBE_SRV, "run_query", { query: { dimensions: [F + "external_execution_id"], measures: [F + "impressions"],
+    timeDimensions: [{ dimension: F + "dt", dateRange: [s, e] }], filters: [{ member: F + "salesforce_crm_id", operator: "equals", values: [r.id] }], limit: 200 } });
+  if (ex && !Array.isArray(ex)) ex = ex.rows || [];
+  const ids = (ex || []).map(x => x["direct_flight_delivery_tz__external_execution_id"]).filter(x => /^[0-9a-f-]{36}$/i.test(x || ""));
+  if (!ids.length) return null;
+  const sql = `WITH b AS (SELECT coalesce(result_context_categories_tier1,'(unclassified)') ctx, regexp_extract(canonical_url, '^(?:https?://)?(?:www\\.)?([^/?#]+)', 1) dom, coalesce(device,'unknown') dev, ad_impression, ad_click, video_play, video_complete, ad_view, ad_view_1s50, ad_view_2s50
+  FROM st_datalakehouse.lab.post_campaign_analysis_view_v2 WHERE execution_id IN (${ids.map(i => `'${i}'`).join(",")}) AND date BETWEEN DATE '${s}' AND DATE '${e}'),
+  g AS (SELECT CASE WHEN grouping(ctx)=0 THEN 'context' WHEN grouping(dom)=0 THEN 'publisher' ELSE 'device' END dim, coalesce(ctx, dom, dev) val,
+    sum(ad_impression) imps, sum(ad_click) clicks, sum(video_play) vplay, sum(video_complete) vcomp, sum(ad_view) vm, sum(ad_view_1s50) v1, sum(ad_view_2s50) v2 FROM b GROUP BY GROUPING SETS ((ctx),(dom),(dev)))
+  SELECT dim, val, imps, clicks, vplay, vcomp, vm, v1, v2 FROM (SELECT g.*, row_number() OVER (PARTITION BY dim ORDER BY imps DESC) rn FROM g) WHERE rn <= 25 AND imps > 0 ORDER BY dim, imps DESC`;
+  let res = await call(ADX_SRV, "trino_query", { sql, limit: 200 });
+  if (typeof res?.result === "string") res = unwrap(res.result);
+  const cols = res?.columns || [], rows = res?.rows || [];
+  const recs = rows.map(rw => Object.fromEntries(cols.map((c, i) => [c, rw[i]])));
+  const total = recs.filter(x => x.dim === "device").reduce((a, x) => a + x.imps, 0) || 1;
+  const isVideo = recs.some(x => x.vplay > 0);
+  const fmtRow = x => ({ name: x.val, imps: x.imps, share_pct: +(x.imps / total * 100).toFixed(1), ctr_pct: x.imps ? +(x.clicks / x.imps * 100).toFixed(2) : null,
+    vcr_pct: x.vplay ? +(x.vcomp / x.vplay * 100).toFixed(1) : null,
+    viewability_pct: x.vm ? +((isVideo ? x.v2 : x.v1) / x.vm * 100).toFixed(1) : null });
+  const by = d => recs.filter(x => x.dim === d && x.val && x.val !== "none").map(fmtRow);
+  return { total_imps: total, isVideo, contexts: by("context"), publishers: by("publisher"), devices: by("device") };
+}
+
+async function fetchStrategies(r) {
+  const B = "buying_engine_deliveries_utc.";
+  const start = day(r.last.start_dt), end = day(r.last.end_dt) < isoDaysAgo(1) ? day(r.last.end_dt) : isoDaysAgo(1);
+  if (!start || start > end) return null;
+  const chunks = []; let e = new Date(end);
+  while (chunks.length < 8) { const s = new Date(e); s.setDate(s.getDate() - 13); const sIso = s.toISOString().slice(0, 10) < start ? start : s.toISOString().slice(0, 10);
+    chunks.push([sIso, e.toISOString().slice(0, 10)]); if (sIso <= start) break; e = new Date(sIso); e.setDate(e.getDate() - 1); }
+  const res = await Promise.all(chunks.map(([s, e2]) => call(CUBE_SRV, "run_query", { query: { dimensions: [B + "strategy_name"],
+    measures: ["impressions", "clicks", "viewable_impressions", "view_measured_impressions", "video_starts", "video_completions"].map(m => B + m),
+    timeDimensions: [{ dimension: B + "dt_utc", dateRange: [s, e2] }], filters: [{ member: B + "salesforce_crm_id", operator: "equals", values: [r.id] }], limit: 100 } }).catch(() => [])));
+  const agg = {};
+  res.flat().forEach(x => { if (!x || typeof x !== "object") return; const n = x[`buying_engine_deliveries_utc__strategy_name`]; if (!n) return;
+    const a = agg[n] ||= { imps: 0, clicks: 0, vi: 0, vm: 0, vs: 0, vc: 0 };
+    a.imps += x[`buying_engine_deliveries_utc__impressions`] || 0; a.clicks += x[`buying_engine_deliveries_utc__clicks`] || 0;
+    a.vi += x[`buying_engine_deliveries_utc__viewable_impressions`] || 0; a.vm += x[`buying_engine_deliveries_utc__view_measured_impressions`] || 0;
+    a.vs += x[`buying_engine_deliveries_utc__video_starts`] || 0; a.vc += x[`buying_engine_deliveries_utc__video_completions`] || 0; });
+  const tot = Object.values(agg).reduce((s, a) => s + a.imps, 0); if (!tot) return null;
+  return Object.entries(agg).map(([name, a]) => ({ name, share_pct: +(a.imps / tot * 100).toFixed(1), imps: a.imps,
+    ctr_pct: a.imps ? +(a.clicks / a.imps * 100).toFixed(2) : null, viewability_pct: a.vm ? +(a.vi / a.vm * 100).toFixed(1) : null, vcr_pct: a.vs ? +(a.vc / a.vs * 100).toFixed(1) : null }))
+    .sort((x, y) => y.imps - x.imps);
+}
+
+async function fetchPmp(ids) {
+  const Q = "pmp_product_line_delivery_tz.";
+  const dims = ["salesforce_crm_id","product_line_name","am","adops","advertiser","agency","product","payment_method","payment_value","booked_revenue","currency","first_kpi","first_kpi_value","start_dt","end_dt","days_left","salesforce_configured_impressions","impressions_accumulated","impressions_goal","impressions_pacing_ratio","adserver_ctr_accumulated","adserver_vtr_accumulated","adserver_vw_accumulated","budget_at_risk","budget_at_risk_eur","gross_revenue_spent_ratio","gross_revenue_accumulated","operational_status","country_sold"].map(d => Q + d);
+  const q = {
+    dimensions: dims, measures: ["impressions","adserver_clicks","adserver_ctr","adserver_vtr","adserver_vw","gross_revenue"].map(m => Q + m),
+    timeDimensions: [{ dimension: Q + "dt", granularity: "day", dateRange: [isoDaysAgo(180), isoDaysAgo(1)] }],
+    filters: [{ member: Q + "salesforce_crm_id", operator: "equals", values: ids }],
+    order: [[Q + "dt", "asc"]], limit: 5000
+  };
+  let rows = await call(CUBE_SRV, "run_query", { query: q });
+  if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+  return (rows || []).map(r0 => {
+    const r = {}; for (const k in r0) r[k.replace("pmp_product_line_delivery_tz__", "")] = r0[k];
+    return { ...r, deal_type: "PMP",
+      salesforce_configured_units: r.salesforce_configured_impressions, units_accumulated: r.impressions_accumulated,
+      units_goal: r.impressions_goal, units_pacing_ratio: r.impressions_pacing_ratio,
+      ctr_accumulated: r.adserver_ctr_accumulated, vtr_accumulated: r.adserver_vtr_accumulated, vw_accumulated: r.adserver_vw_accumulated,
+      clicks: r.adserver_clicks, ctr: r.adserver_ctr, vtr: r.adserver_vtr, vw: r.adserver_vw, units_delivered: r.impressions };
+  });
+}
+
+/* ---------- analysis ---------- */
+function kpiActual(name, last) {
+  const n = (name || "").toLowerCase();
+  if (n.includes("ctr")) return { key: "ctr", val: last.ctr_accumulated };
+  if (n.includes("completion") || n.includes("vtr") || n.includes("vcr")) return { key: "vtr", val: last.vtr_accumulated };
+  if (n.includes("viewab")) return { key: "vw", val: last.vw_accumulated };
+  return null;
+}
+const parsePct = v => { if (v == null || v === "") return null; const x = parseFloat(String(v).replace(",", ".").replace("%", "")); return isNaN(x) ? null : x; };
+
+function analysePerf(id, P, jira, streakN) {
+  const T = P.total || {};
+  const daily = P.daily.map(x => ({ dt: x.dt, units: x.spent || 0, goal: P.daily_target, imps: x.imps || 0, ctr: x.imps ? x.clicks / x.imps * 100 : null, vtr: null, vw: null }));
+  let streak = 0; for (let i = daily.length - 1; i >= 0; i--) { const d = daily[i]; if (d.goal > 0 && d.units < d.goal) streak++; else break; }
+  const today = isoDaysAgo(0), endD = P.end || "", ended = endD && endD < today;
+  const daysLeft = endD ? Math.max(0, Math.round((new Date(endD) - new Date(today)) / 864e5) + 1) : null;
+  const pIdx = num(P.pacing_index_total); const pacing = pIdx == null ? null : 100 + pIdx;
+  const deliveredPct = P.budget && T.spent != null ? T.spent / P.budget * 100 : null;
+  const last3 = daily.slice(-3).map(d => d.units); const avg3 = last3.length ? last3.reduce((a, b) => a + b, 0) / last3.length : 0;
+  const projRaw = P.budget ? (T.spent + (daysLeft || 0) * avg3) / P.budget * 100 : null;
+  const bar = P.budget && projRaw != null ? P.budget * Math.max(0, 1 - projRaw / 100) : null;
+  const kpis = [];
+  const kName = (jira?.kpi1 || P.kpi_name || "").trim(), kVal = jira?.kpi1v || P.kpi_target;
+  const ctrTot = T.imps ? T.clicks / T.imps * 100 : null;
+  if (/ctr/i.test(kName)) kpis.push({ label: "First KPI · CTR", target: parsePct(kVal), actual: ctrTot, unit: "%" });
+  else if (/visit|cpv|cost/i.test(kName)) kpis.push({ label: "First KPI · " + kName + " (cost per visit)", target: num(kVal), actual: T.cpx || null, unit: "€", lowerBetter: true });
+  else if (kName) kpis.push({ label: "First KPI · " + kName, target: num(kVal), actual: null, unit: "" });
+  if (!/ctr/i.test(kName) && ctrTot != null) kpis.push({ label: "CTR", target: null, actual: ctrTot, unit: "%" });
+  if (T.kpi) kpis.push({ label: "Visits", target: null, actual: T.kpi, unit: "#" });
+  const kpiMiss = kpis.filter(k => k.target != null && k.actual != null && (k.lowerBetter ? k.actual > k.target : k.actual < k.target));
+  const why = []; let status, cls;
+  if (streak >= streakN) why.push(`spend below daily target ${streak} days in a row`);
+  if (P.pacing_label) why.push(`internal report: ${P.pacing_label.toLowerCase()} (${P.pacing_index_total})`);
+  kpiMiss.forEach(k => why.push(`${k.label.replace(/^First KPI · /, "")} off target`));
+  if (!daily.length) { status = "NOT STARTED"; cls = "s-na"; }
+  else if (ended) { status = `ENDED · ${deliveredPct == null ? "" : Math.round(deliveredPct) + "% spent"}`; cls = "s-end"; }
+  else if (streak >= streakN || /under/i.test(P.pacing_label) && pIdx != null && pIdx <= -10) { status = `UNDER PACING${streak >= streakN ? " · " + streak + " days" : ""}`; cls = "s-ko"; }
+  else if (/under|over/i.test(P.pacing_label) || kpiMiss.length) { status = "TO WATCH"; cls = "s-risk"; }
+  else { status = "ON TRACK"; cls = "s-ok"; }
+  const last = { product_line_name: (jira?.summary || P.file || "").split("|").pop().trim(), am: jira?.csm, start_dt: P.start, end_dt: P.end, days_left: daysLeft,
+    units_accumulated: T.spent, booked_revenue: P.budget, currency: "EUR", payment_value: P.price, advertiser: (P.file || "").split("__")[1] || "" };
+  return { perf: P, avg3, bar, barEur: bar, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm: P.price_type || "dCPC", unitLabel: "€ spend",
+    expectedToDate: pacing ? T.spent / (pacing / 100) : null, type: "Performance", ended, deliveredPct, projected: projRaw, projRaw,
+    name: last.product_line_name, csm: jira?.csm || "" };
+}
+function analyse(id, rows, jira, streakN) {
+  if (!rows.length) return { id, missing: true, jira };
+  const last = rows[rows.length - 1];
+  const pm = last.payment_method || "CPM";
+  const unitOf = r => r.units_delivered ?? (pm === "CPC" ? r.clicks : pm === "CPV" ? r.video_completions : r.impressions);
+  const daily = rows.map(r => ({ dt: day(r.dt_day), units: unitOf(r) || 0, goal: r.units_goal, imps: r.impressions || 0, ctr: r.ctr, vtr: r.vtr, vw: r.vw }));
+  // under-pacing streak: consecutive days at the end below daily goal
+  let streak = 0;
+  for (let i = daily.length - 1; i >= 0; i--) { const d = daily[i]; if (d.goal > 0 && d.units < d.goal) streak++; else break; }
+  const started = daily.some(d => d.units > 0);
+  const ended = day(last.end_dt) < isoDaysAgo(0);
+  const type = last.deal_type || "Direct";
+  // Whole-campaign forecast, same basis as budget_at_risk: (delivered + days_left × last day's units) / booked units.
+  // (salesforce_units_delivered_ratio_projected is a MONTH-END projection, not a campaign one — not used.)
+  // Smoothed on the average of the last 3 delivered days (instead of yesterday only).
+  const last3 = daily.slice(-3).map(d => d.units);
+  const avg3 = last3.length ? last3.reduce((a, b) => a + b, 0) / last3.length : 0;
+  let projRaw = null, bar = null, barEur = null;
+  if (last.salesforce_configured_units > 0 && last.units_accumulated != null) {
+    projRaw = 100 * (last.units_accumulated + Math.max(0, last.days_left || 0) * avg3) / last.salesforce_configured_units;
+    if (last.booked_revenue > 0) {
+      bar = last.booked_revenue * Math.max(0, 1 - projRaw / 100);
+      const fx = (last.budget_at_risk > 0 && last.budget_at_risk_eur > 0) ? last.budget_at_risk_eur / last.budget_at_risk : (last.currency === "EUR" ? 1 : null);
+      barEur = fx == null ? null : bar * fx;
+    }
+  }
+  const deliveredPct = last.salesforce_configured_units ? last.units_accumulated / last.salesforce_configured_units * 100 : null;
+  // KPIs
+  const kpis = [];
+  const k1Name = last.first_kpi || jira?.kpi1;
+  if (k1Name) {
+    const a = kpiActual(k1Name, last);
+    const target = last.first_kpi_value != null ? last.first_kpi_value * 100 : parsePct(jira?.kpi1v);
+    kpis.push({ label: "First KPI · " + k1Name.replace(/ percentage| number| currency/i, ""), target, actual: a?.val ?? null, unit: "%", src: "BigQuery" });
+  }
+  if (jira?.kpi2) {
+    const a = kpiActual(jira.kpi2, last);
+    kpis.push({ label: "Second KPI · " + jira.kpi2, target: parsePct(jira.kpi2v), actual: a?.val ?? null, unit: "%", src: "Jira" });
+  }
+  // add other standard metrics as info
+  [["CTR", "ctr_accumulated"], ["Video completion", "vtr_accumulated"], ["Viewability", "vw_accumulated"]].forEach(([l, k]) => {
+    if (last[k] != null && !kpis.some(x => x.label.toLowerCase().includes(l.toLowerCase().split(" ")[0].slice(0,4)))) kpis.push({ label: l, target: null, actual: last[k], unit: "%", src: "BigQuery" });
+  });
+  const kpiMiss = kpis.filter(k => k.target != null && k.actual != null && k.actual < k.target);
+  const pacing = last.units_pacing_ratio;
+  let status, cls; const why = [];
+  if (streak >= streakN) why.push(`below daily goal ${streak} days in a row`);
+  if (pacing != null && pacing < 95) why.push(`pacing ${pacing.toFixed(0)}% (< 95%)`);
+  kpiMiss.forEach(k => why.push(`${k.label.replace(/^(First|Second) KPI · /, "").trim()} ${k.actual.toFixed(2)}% vs ${k.target.toFixed(2)}% target`));
+  if (!started && !ended) { status = "NOT STARTED"; cls = "s-na"; }
+  else if (ended) { status = `ENDED · ${deliveredPct == null ? "" : Math.round(deliveredPct) + "% delivered"}`; cls = "s-end"; }
+  else if (streak >= streakN) { status = `UNDER PACING · ${streak} days`; cls = "s-ko"; }
+  else if ((pacing != null && pacing < 95) || kpiMiss.length) { status = "TO WATCH"; cls = "s-risk"; }
+  else { status = "ON TRACK"; cls = "s-ok"; }
+  const expectedToDate = pacing ? last.units_accumulated / (pacing / 100) : null;
+  return {
+    avg3, bar, barEur, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm, expectedToDate, type, ended, deliveredPct,
+    projected: projRaw == null ? null : (type === "Direct" ? Math.min(projRaw, 100) : projRaw), projRaw,
+    name: String(last.product_line_name || "").replace(/\t/g, " · "),
+    csm: last.am || jira?.csm || ""
+  };
+}
+
+/* ---------- rendering ---------- */
+function chartSVG(daily, n) {
+  const d = daily.slice(-n);
+  if (!d.length) return "";
+  const W = 640, H = 90, pad = 2, bw = W / d.length;
+  const max = Math.max(...d.map(x => Math.max(x.units, x.goal || 0)), 1);
+  let bars = "", goalPts = [];
+  d.forEach((x, i) => {
+    const h = (x.units / max) * (H - 6);
+    const under = x.goal > 0 && x.units < x.goal;
+    bars += `<rect x="${i * bw + pad}" y="${H - h}" width="${Math.max(bw - pad * 2, 1)}" height="${h}" rx="2" fill="${under ? "#f5b5bd" : "#FF6B7C"}"><title>${x.dt}: ${fmt(x.units)} / goal ${fmt(x.goal)}</title></rect>`;
+    if (x.goal) goalPts.push(`${i * bw + bw / 2},${H - (x.goal / max) * (H - 6)}`);
+  });
+  const line = goalPts.length > 1 ? `<polyline points="${goalPts.join(" ")}" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4 3"/>` : "";
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">${bars}${line}</svg>
+  <div class="legend"><span><i style="background:#FF6B7C"></i>Units / day &nbsp;<i style="background:#f5b5bd"></i>Below daily goal &nbsp;<i style="background:none;border-top:2px dashed #000;height:0;width:14px"></i>Daily goal</span><span>${dmy(d[0].dt)} → ${dmy(d[d.length - 1].dt)}</span></div>`;
+}
+function perfBlock(r) {
+  const P = r.perf; if (!P) return "";
+  const T = P.total || {}; const spentPct = P.budget && T.spent != null ? T.spent / P.budget * 100 : null;
+  const ctr = T.imps ? (T.clicks / T.imps * 100) : null;
+  const kpiIsVisit = /visit/i.test(P.kpi_name || "") || (T.kpi > 0);
+  return `<div style="margin-top:14px"><h2 style="margin-bottom:6px">Performance · internal report <a href="${esc(P.url)}" target="_blank" style="font-weight:400;text-transform:none;letter-spacing:0">open ↗</a></h2>
+    <table><tr><th>Budget</th><th>Client spent</th><th>Impressions</th><th>Clicks · CTR</th><th>${esc(P.price_type || "CPC/CPM")}</th>${kpiIsVisit ? "<th>Visits (KPI)</th><th>CPV</th>" : ""}<th>Pacing index</th></tr>
+    <tr><td>€${fmt(P.budget)}</td><td>€${fmt(T.spent)} <span class="muted">(${pct(spentPct, 0)})</span></td><td>${fmt(T.imps)}</td><td>${fmt(T.clicks)} · ${pct(ctr, 2)}</td><td>€${T.cpc_cpm == null ? "—" : T.cpc_cpm.toFixed(2)}</td>${kpiIsVisit ? `<td>${fmt(T.kpi)}</td><td>${T.cpx ? "€" + T.cpx.toFixed(2) : "—"}</td>` : ""}<td>${esc(P.pacing_index_total || "—")} <span class="muted">${esc(P.pacing_label || "")}</span></td></tr></table></div>`;
+}
+const METRICS = { ctr: ["CTR", "ctr_pct", 2], viewability: ["Viewability", "viewability_pct", 1], vcr: ["VTR", "vcr_pct", 1] };
+function tgtView(r, n = 8) {
+  const T = r.targeting; if (!T) return null;
+  const hid = r.tgtHidden || new Set(), m = r.tgtMetrics || ["ctr"];
+  const pick = (list, k) => list.filter(x => !hid.has(k + ":" + x.name) && !hid.has(x.name)).slice(0, n)
+    .map(x => ({ name: nice(x.name), share_pct: x.share_pct, ...Object.fromEntries(m.map(id => [METRICS[id][0].toLowerCase() + "_pct", x[METRICS[id][1]]])) }));
+  return { metrics: m.map(id => METRICS[id][0]), contexts: pick(T.contexts, "context"), publishers: pick(T.publishers, "publisher"), devices: pick(T.devices, "device") };
+}
+const nice = s => /\./.test(s) ? s : String(s).replace(/-and-/g, " & ").replace(/-/g, " ").replace(/^./, c => c.toUpperCase());
+function tgtMarkdown(r) {
+  const V = tgtView(r); if (!V) return "";
+  const line = x => `- **${x.name}** — ${x.share_pct}%` + V.metrics.map(mn => { const v = x[mn.toLowerCase() + "_pct"]; return v == null ? "" : ` · ${mn} ${v}%`; }).join("");
+  const sec = (t, l) => l.length ? `**${t}** (top 5)\n${l.slice(0, 5).map(line).join("\n")}` : "";
+  const L = r.last || {};
+  // key takeaways: leader by volume + best/worst on the first chosen metric among items with >= 5% share
+  const mk = V.metrics[0] ? V.metrics[0].toLowerCase() + "_pct" : null;
+  const take = (label, l) => {
+    if (!l.length) return null; const big = l.filter(x => x.share_pct >= 5); let s = `${label}: **${l[0].name}** leads with ${l[0].share_pct}% of volume`;
+    if (mk && big.length > 1) { const s2 = [...big].filter(x => x[mk] != null).sort((a, b) => b[mk] - a[mk]); if (s2.length > 1) s += `; best ${V.metrics[0]} **${s2[0].name}** (${s2[0][mk]}%), lowest ${s2.at(-1).name} (${s2.at(-1)[mk]}%)`; }
+    return "- " + s + ".";
+  };
+  const tk = [take("Contexts", V.contexts), take("Publishers", V.publishers), take("Devices", V.devices)].filter(Boolean).join("\n");
+  return [`**Campaign insights · ${r.id}**`, `${r.name} · ${dmy(L.start_dt)} → ${dmy(L.end_dt)} · ${fmt(r.targeting.total_imps)} impressions measured`, tk ? `**Key takeaways**\n${tk}` : "", sec("Top contexts", V.contexts), sec("Top publishers", V.publishers), sec("Devices", V.devices)].filter(Boolean).join("\n\n");
+}
+function insightsBlock(r) {
+  const I = flightInsights(r); const tac = r.perf?.tactics || [];
+  const open = feedbackMode() === "end" ? "open" : "";
+  const wk = I ? `<table style="margin-top:8px"><tr><th>Week of</th><th>Days</th><th>${r.type === "Performance" ? "Spend €" : "Units"}</th><th>CTR</th><th>Viewab.</th><th>VTR</th></tr>${I.weeks.map(w => `<tr><td>${dmy(w.week_of)}</td><td>${w.days}</td><td>${fmt(w.units)}</td><td>${pct(w.ctr_pct, 2)}</td><td>${pct(w.viewability_pct, 1)}</td><td>${pct(w.vtr_pct, 1)}</td></tr>`).join("")}</table>
+    <div class="src">Best day: <b>${dmy(I.best_day?.dt)}</b> (${fmt(I.best_day?.units)}) · Weakest: <b>${dmy(I.worst_day?.dt)}</b> (${fmt(I.worst_day?.units)}) · By weekday: ${I.weekday.map(d => `${d.day} ${fmt(d.avg_units)}`).join(" · ")}</div>` : "";
+  const tt = tac.length ? `<table style="margin-top:8px"><tr>${Object.keys(tac[0]).map(k => `<th>${esc(k)}</th>`).join("")}</tr>${tac.map(t => `<tr>${Object.values(t).map(v => `<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</table>` : "";
+  const T = r.targeting;
+  const hid = r.tgtHidden || new Set(), ms = r.tgtMetrics || ["ctr"];
+  const tbl = (title, key, list, n = 8) => {
+    const vis = (list || []).filter(x => !hid.has(key + ":" + x.name) && !hid.has(x.name)).slice(0, n);
+    return vis.length ? `<div style="flex:1;min-width:230px"><div class="muted" style="margin:8px 0 2px;font-weight:600">${title}</div><table>${vis.map(x => `<tr><td>${esc(nice(x.name))}</td><td>${x.share_pct}%</td>${ms.map(id => `<td>${METRICS[id][0]} ${pct(x[METRICS[id][1]], METRICS[id][2])}</td>`).join("")}<td><button class="tgx" data-crm="${esc(r.id)}" data-k="${esc(key + ":" + x.name)}" title="Remove">×</button></td></tr>`).join("")}</table></div>` : "";
+  };
+  const tg = T ? `<div class="tgbar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:12px">Metrics:
+      ${Object.entries(METRICS).map(([id, m]) => `<label style="display:flex;gap:4px;margin:0;color:#000"><input type="checkbox" class="tgm" data-crm="${esc(r.id)}" data-m="${id}" ${ms.includes(id) ? "checked" : ""}>${m[0]}</label>`).join("")}
+      ${hid.size > 3 ? `<span class="muted" style="cursor:pointer;text-decoration:underline" data-reset="${esc(r.id)}">restore removed rows</span>` : ""}
+      <span style="margin-left:auto"></span>${r.jira ? `<button class="btn sec tgpost" data-crm="${esc(r.id)}" style="padding:6px 12px">Post insights to ${esc(r.jira.key)}</button>` : ""}</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">${tbl("Contexts", "context", T.contexts)}${tbl("Publishers", "publisher", T.publishers)}${tbl("Devices", "device", T.devices, 4)}</div><div class="tgmsg" id="tgmsg_${esc(r.id)}"></div>` : "";
+  const S = r.strategies;
+  const sMs = r.tgtMetrics || (S && S.some(x => x.vcr_pct != null) ? ["viewability", "vcr"] : ["ctr", "viewability"]);
+  const st = S?.length ? `<div style="margin-top:8px"><div class="muted" style="margin:8px 0 2px;font-weight:600">Buying Engine strategies</div><table>${S.map(x => `<tr><td>${esc(x.name)}</td><td>${x.share_pct}%</td>${sMs.map(id => `<td>${METRICS[id][0]} ${pct(x[METRICS[id][1]], METRICS[id][2])}</td>`).join("")}</tr>`).join("")}</table></div>` : "";
+  if (!I && !tac.length && !T && !st) return "";
+  return `<details ${open || r.insOpen ? "open" : ""} class="ins" data-crm="${esc(r.id)}" style="margin-top:12px"><summary>Flight insights${S?.length ? " · strategies" : ""}${T ? " · contexts · publishers · devices" : ""}${tac.length ? " · tactics" : ""} ${open ? "(used for the recommendations)" : "(used in the end-of-campaign report)"}</summary>${st}${tg}${wk}${tt}</details>`;
+}
+function prevSnapshot(id) {
+  const docs = histDocs.filter(d => d.id !== state.histId && d.snap && d.snap[id]);
+  if (!docs.length) return null;
+  const posted = docs.filter(d => d.posted?.length);
+  const d = (posted.length ? posted : docs).sort((a, b) => b.ts - a.ts)[0];
+  return { date: new Date(d.ts).toISOString().slice(0, 10), posted: !!d.posted?.length, ...d.snap[id] };
+}
+function snapshotOf(r) {
+  if (r.missing) return null;
+  return { data_date: r.daily.at(-1)?.dt, status: r.status, pacing: r.pacing, delivered: r.last.units_accumulated, delivered_pct: r.deliveredPct && +r.deliveredPct.toFixed(1),
+    kpis: r.kpis.map(k => ({ kpi: k.label, actual: k.actual, target: k.target })),
+    perf: r.perf?.total ? { spent: r.perf.total.spent, clicks: r.perf.total.clicks, visits: r.perf.total.kpi, cpx: r.perf.total.cpx, pacing_index: r.perf.pacing_index_total } : undefined };
+}
+function sinceBlock(r) {
+  const p = prevSnapshot(r.id); if (!p) return "";
+  const parts = [];
+  if (p.pacing != null && r.pacing != null) parts.push(`pacing ${pct(p.pacing, 0)} → <b>${pct(r.pacing, 0)}</b>`);
+  r.kpis.forEach(k => { const o = (p.kpis || []).find(x => x.kpi === k.label); if (o && o.actual != null && k.actual != null) parts.push(`${esc(k.label.replace(/^(First|Second) KPI · /, ""))} ${pct(o.actual, 2)} → <b>${pct(k.actual, 2)}</b>`); });
+  if (p.perf?.visits != null && r.perf?.total?.kpi != null) parts.push(`visits ${fmt(p.perf.visits)} → <b>${fmt(r.perf.total.kpi)}</b>`);
+  return parts.length ? `<div class="src" style="margin-top:8px">Since last update (${dmy(p.date)}${p.posted ? ", posted" : ""}): ${parts.join(" · ")}</div>` : "";
+}
+function flightInsights(r) {
+  if (r.missing || !r.daily) return null;
+  const d = r.daily.filter(x => x.units > 0); if (d.length < 5) return null;
+  const wk = {};
+  d.forEach(x => { const dt = new Date(x.dt); const mon = new Date(dt); mon.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); const k = mon.toISOString().slice(0, 10);
+    const w = wk[k] ||= { week_of: k, units: 0, imps: 0, ctrW: 0, vwW: 0, vtrW: 0, n: 0 };
+    w.units += x.units; w.imps += x.imps; w.n++; if (x.ctr != null) w.ctrW += x.ctr * x.imps; if (x.vw != null) w.vwW += x.vw * x.imps; if (x.vtr != null) w.vtrW += x.vtr * x.imps; });
+  const weeks = Object.values(wk).map(w => ({ week_of: w.week_of, days: w.n, units: w.units, ctr_pct: w.imps && w.ctrW ? +(w.ctrW / w.imps).toFixed(2) : null, viewability_pct: w.imps && w.vwW ? +(w.vwW / w.imps).toFixed(1) : null, vtr_pct: w.imps && w.vtrW ? +(w.vtrW / w.imps).toFixed(1) : null }));
+  const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], dow = {};
+  d.forEach(x => { const k = names[new Date(x.dt).getDay()]; const o = dow[k] ||= { units: 0, n: 0, ctrW: 0, imps: 0 }; o.units += x.units; o.n++; o.imps += x.imps; if (x.ctr != null) o.ctrW += x.ctr * x.imps; });
+  const weekday = Object.entries(dow).map(([k, o]) => ({ day: k, avg_units: Math.round(o.units / o.n), ctr_pct: o.imps && o.ctrW ? +(o.ctrW / o.imps).toFixed(2) : null }));
+  const byUnits = [...d].sort((a, b) => b.units - a.units);
+  return { weeks, weekday, best_day: byUnits[0] && { dt: byUnits[0].dt, units: byUnits[0].units }, worst_day: byUnits.at(-1) && { dt: byUnits.at(-1).dt, units: byUnits.at(-1).units } };
+}
+function renderResults() {
+  const R = state.results, main = $("#main"); main.innerHTML = "";
+  const ok = R.filter(r => !r.missing);
+  const n = $("#period").value === "flight" ? 400 : +$("#period").value;
+  const avgFlight = ok.length ? ok.reduce((s, r) => {
+    const st = new Date(day(r.last.start_dt)), en = new Date(day(r.last.end_dt)), now = new Date();
+    return s + Math.min(1, Math.max(0, (now - st) / Math.max(en - st, 1)));
+  }, 0) / ok.length * 100 : null;
+  main.insertAdjacentHTML("beforeend", `<div class="summary">
+    <div class="kpi"><div class="v">${R.length}</div><div class="l">Campaigns analysed</div></div>
+    <div class="kpi"><div class="v">${ok.filter(r => r.cls === "s-ok").length}</div><div class="l">On track</div></div>
+    <div class="kpi"><div class="v" style="color:var(--coral)">${ok.filter(r => r.cls === "s-ko" || r.cls === "s-risk").length}</div><div class="l">Under pacing / to watch</div></div>
+    <div class="kpi"><div class="v">${avgFlight == null ? "—" : Math.round(avgFlight) + "%"}</div><div class="l">Flight elapsed (avg.)</div></div></div>`);
+  R.forEach(r => {
+    if (r.missing) {
+      main.insertAdjacentHTML("beforeend", `<div class="card"><div class="crm-head"><div><h3>${esc(r.id)}</h3><p>No delivery data found in BigQuery for this CRM ID (direct or PMP)${r.jira ? ` · Jira <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a>` : ""}.</p></div><span class="pill s-na">NO DATA</span></div></div>`);
+      return;
+    }
+    const L = r.last;
+    const fv = (v, u) => v == null ? "—" : u === "€" ? "€" + (+v).toFixed(2) : u === "#" ? fmt(v) : pct(v, 2);
+    const rowsK = r.kpis.map(k => {
+      const u = k.unit || "%"; const diff = k.target != null && k.actual != null ? k.actual - k.target : null;
+      const good = diff == null ? null : (k.lowerBetter ? diff <= 0 : diff >= 0);
+      const dTxt = diff == null ? "—" : (diff >= 0 ? "+" : "−") + (u === "€" ? "€" + Math.abs(diff).toFixed(2) : Math.abs(diff).toFixed(2) + " pts");
+      return `<tr><td>${esc(k.label)}</td><td>${fv(k.target, u)}</td><td>${fv(k.actual, u)}</td><td class="${good == null ? "" : good ? "d-ok" : "d-ko"}">${dTxt}</td></tr>`;
+    }).join("");
+    const del = `<tr><td>${r.type === "Performance" ? "Spend to date (€)" : "Delivery to date (" + esc(r.pm) + ")"}</td><td>${fmt(r.expectedToDate)}</td><td>${fmt(L.units_accumulated)}</td><td class="${r.pacing == null ? "" : r.pacing >= 98 ? "d-ok" : "d-ko"}">${r.pacing == null ? "—" : pct(r.pacing, 0)}</td></tr>`;
+    const proj = r.projected;
+    main.insertAdjacentHTML("beforeend", `<div class="card">
+      <div class="crm-head"><div><h3>${esc(r.id)} · ${esc(r.name)}</h3>
+        <p>${r.jira ? `<a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a> · ` : ""}CSM ${esc(r.csm || "—")} · ${dmy(L.start_dt)} → ${dmy(L.end_dt)} (${L.days_left ?? "—"} days left) · ${fmt(L.salesforce_configured_units)} units · ${esc(r.pm)} ${L.payment_value ?? ""} ${esc(L.currency || "")} · ${fmt(L.booked_revenue)} ${esc(L.currency || "")}</p></div>
+        <div style="text-align:right"><span class="pill ${r.cls}">${esc(r.status)}</span>${r.why.length && !r.ended ? `<div class="muted" style="margin-top:6px;font-size:11px">${r.why.map(esc).join("<br>")}</div>` : ""}</div></div>
+      <table><tr><th>KPI</th><th>Target</th><th>Actual</th><th>Gap</th></tr>${del}${rowsK}</table>
+      ${perfBlock(r)}
+      ${sinceBlock(r)}
+      ${insightsBlock(r)}
+      ${chartSVG(r.daily, n)}
+      <div class="src">${esc(r.type)} · ${r.ended ? `Final delivery: <b>${pct(r.deliveredPct, 0)}</b>` : `Projected delivery: <b>${pct(proj, 0)}</b>${r.type === "Direct" && r.projRaw > 100 ? " (capped — direct stops at 100%, ahead of schedule)" : ""}`}${r.type === "PMP" && L.gross_revenue_spent_ratio != null ? ` · Budget spent: <b>${pct(L.gross_revenue_spent_ratio, 0)}</b>` : ""} · Budget at risk: <b>${r.ended ? "—" : r.barEur != null ? "€" + fmt(r.barEur) : r.bar != null ? fmt(r.bar) + " " + esc(L.currency || "") : "—"}</b> <span title="Projection based on the average of the last 3 days">(3-day avg)</span> · Sources: <b>BigQuery</b>${r.jira ? ` · <b>Jira ${esc(r.jira.key)}</b>` : ""}${state.files.filter(f => f.target === "all" || f.target === r.id).map(f => ` · <b>${esc(f.name)}</b>`).join("")}</div>
+    </div>`);
+  });
+  renderFeedbackCard();
+}
+function renderFeedbackCard(loading) {
+  $("#fbCard")?.remove();
+  const tickets = (state.results || []).filter(r => r.jira).map(r => `<label><input type="checkbox" class="tk" value="${esc(r.jira.key)}" checked>${esc(r.jira.key)}</label>`).join("");
+  $("#main").insertAdjacentHTML("beforeend", `<div class="card feedback" id="fbCard">
+    <h2>Generated feedback · ${feedbackMode() === "end" ? "end-of-campaign report" : "mid-flight update"} · to post in Jira</h2>
+    <div class="tone">${["Factual", "Short", "Detailed"].map(t => `<span class="${t === state.tone ? "on" : ""}" data-t="${t}">${t}</span>`).join("")}</div>
+    ${!loading && !state.editing && state.feedback ? `<div class="hint">Tip: select a passage you don't like to tell Claude what's wrong.</div>` : ""}
+    ${loading ? `<div class="muted" style="padding:20px 0"><span class="spin dk"></span>Writing the feedback…</div>` : (state.editing ? `<textarea id="fbText"></textarea>` : `<div class="fbview" id="fbView"></div>`)}
+    <div class="actions">
+      <div class="tickets">${tickets ? "Post on: " + tickets : ""}</div>
+      <button class="btn sec" id="learn" ${state.generated && state.feedback.trim() !== state.generated.trim() ? "" : "disabled"} title="Compare my version with the generated one and propose style rules">Learn from my edits</button>
+      <button class="btn sec" id="edit">${state.editing ? "Preview" : "Edit"}</button>
+      <button class="btn sec" id="regen">Regenerate</button>
+      <button class="btn sec" id="copy">Copy</button>
+      <button class="btn sec" id="pdf">Export PDF</button>
+      <button class="btn dark" id="post" ${tickets ? "" : "disabled"}>Post as Jira comment →</button>
+    </div><div id="postMsg"></div><div id="learnBox"></div></div>`);
+  if (!loading) {
+    if (state.editing) { $("#fbText").value = state.feedback; $("#fbText").oninput = e => { state.feedback = e.target.value; const l = $("#learn"); if (l) l.disabled = !(state.generated && state.feedback.trim() !== state.generated.trim()); }; }
+    else { $("#fbView").innerHTML = mdToHtml(state.feedback) || `<span class="muted">No feedback yet.</span>`; $("#fbView").addEventListener("mouseup", onSelect); }
+    $("#edit").onclick = () => { state.editing = !state.editing; if (!state.editing) saveHistory(); renderFeedbackCard(); };
+  }
+  document.querySelectorAll(".tone span").forEach(s => s.onclick = () => { state.tone = s.dataset.t; try { localStorage.setItem("csm_tone_v2", state.tone); } catch {} writeFeedback(); });
+  $("#regen").onclick = () => writeFeedback();
+  $("#pdf").onclick = exportPdf;
+  $("#learn").onclick = learnFromEdits;
+  $("#copy").onclick = async () => {
+    const plain = state.feedback.replace(/\*\*(.+?)\*\*/g, "$1");
+    try {
+      if (window.ClipboardItem) await navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([mdToHtml(state.feedback)], { type: "text/html" }), "text/plain": new Blob([plain], { type: "text/plain" }) })]);
+      else await navigator.clipboard.writeText(plain);
+      $("#copy").textContent = "Copied ✓";
+    } catch { try { await navigator.clipboard.writeText(plain); $("#copy").textContent = "Copied ✓"; } catch { $("#copy").textContent = "Copy blocked"; } }
+    setTimeout(() => $("#copy") && ($("#copy").textContent = "Copy"), 2000);
+  };
+  $("#post").onclick = askPost;
+}
+
+function mdToHtml(md) {
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<i>$2</i>");
+  const out = []; let list = null, para = [];
+  const flushP = () => { if (para.length) { out.push("<p>" + para.map(inline).join("<br>") + "</p>"); para = []; } };
+  const flushL = () => { if (list) { out.push("<ul>" + list.map(x => "<li>" + inline(x) + "</li>").join("") + "</ul>"); list = null; } };
+  String(md || "").split(/\r?\n/).forEach(line => {
+    const m = line.match(/^\s*[-•▸*]\s+(.*)$/);
+    if (m && !/^\s*\*\*/.test(line)) { flushP(); (list ||= []).push(m[1]); }
+    else if (!line.trim()) { flushP(); flushL(); }
+    else { flushL(); para.push(line); }
+  });
+  flushP(); flushL();
+  return out.join("");
+}
+
+/* ---------- PDF export ---------- */
+const loadScript = src => new Promise((ok, ko) => { if ([...document.scripts].some(s => s.src === src)) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => ko(new Error("could not load " + src)); document.head.appendChild(s); });
+async function exportPdf() {
+  const btn = $("#pdf"); const old = btn.textContent; btn.disabled = true; btn.innerHTML = `<span class="spin dk"></span>PDF…`;
+  try {
+    caps(); const dl = await cap("downloads");
+    if (!dl) throw new Error("downloads are not available in this view");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const ok = (state.results || []).filter(x => !x.missing);
+    const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands)$/, "")).filter(Boolean))].join(", ") || "Campaign report";
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;background:#EBE6E4;font-family:'Instrument Sans',sans-serif;color:#000";
+    wrap.innerHTML = `<div style="background:#FF6B7C;color:#fff;padding:22px 28px"><div style="font-size:12px;opacity:.9">Seedtag · ${feedbackMode() === "end" ? "End-of-campaign report" : "Campaign update"} · ${new Date().toLocaleDateString("en-GB")}</div><div style="font-size:24px;font-weight:600;margin-top:4px">${esc(title)}</div></div>
+      <div style="padding:20px 28px"><div class="card" style="border-left:4px solid #FF6B7C"><div class="fbview" style="background:#fff;padding:0">${mdToHtml(state.feedback)}</div></div><div id="pdfCards"></div></div>`;
+    document.body.appendChild(wrap);
+    document.querySelectorAll("#main > .card:not(#fbCard)").forEach(c => {
+      if (c.classList.contains("empty")) return;
+      const k = c.cloneNode(true);
+      k.querySelectorAll("button, .tgbar, .tgmsg, input").forEach(x => x.remove());
+      k.querySelectorAll("details").forEach(d => d.open = true);
+      wrap.querySelector("#pdfCards").appendChild(k);
+    });
+    const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: "#EBE6E4", useCORS: true });
+    wrap.remove();
+    const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+    const pxPerPt = canvas.width / pw, pagePx = Math.floor(ph * pxPerPt);
+    for (let y = 0, i = 0; y < canvas.height; y += pagePx, i++) {
+      const slice = document.createElement("canvas"); slice.width = canvas.width; slice.height = Math.min(pagePx, canvas.height - y);
+      slice.getContext("2d").drawImage(canvas, 0, y, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+      if (i) pdf.addPage();
+      pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pw, slice.height / pxPerPt);
+    }
+    const name = `${title.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "report"}_${isoDaysAgo(0)}.pdf`;
+    await dl.save({ filename: name, data: pdf.output("blob") });
+  } catch (e) { note("PDF export failed: " + (e?.message || e?.code || e), "err"); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+/* ---------- Claude writing ---------- */
+function feedbackMode() {
+  const m = $("#mode").value; if (m !== "auto") return m;
+  const ok = (state.results || []).filter(r => !r.missing);
+  return ok.length && ok.every(r => r.ended) ? "end" : "update";
+}
+function buildPrompt() {
+  const mode = feedbackMode();
+  const period = mode === "end" ? "flight" : $("#period").value;
+  const n = period === "flight" ? 400 : +period;
+  const data = state.results.map(r => {
+    if (r.missing) return { crm_id: r.id, note: "No delivery data found", jira: r.jira?.key };
+    const L = r.last, d = r.daily.slice(-n);
+    const avg = k => { const v = d.map(x => x[k]).filter(x => x != null); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : null; };
+    return {
+      crm_id: r.id, product_line: r.name, deal_type: r.type, campaign_ended: r.ended, jira: r.jira?.key, csm: r.csm, advertiser: L.advertiser, agency: L.agency, format: L.product,
+      status_computed: r.status, buying: `${r.pm} ${L.payment_value} ${L.currency}`, booked_revenue: L.booked_revenue,
+      final_delivered_pct_of_booking: r.ended ? r.deliveredPct && +r.deliveredPct.toFixed(1) : undefined,
+      budget_spent_pct: L.gross_revenue_spent_ratio,
+      flight: `${day(L.start_dt)} → ${day(L.end_dt)}`, days_left: L.days_left,
+      booked_units: L.salesforce_configured_units, delivered_units_to_date: L.units_accumulated,
+      pacing_pct_to_date: r.pacing, projected_end_of_campaign_delivery_pct_of_booking_at_current_pace: r.ended ? undefined : r.projected && +r.projected.toFixed(1),
+      budget_at_risk_eur: r.ended || r.barEur == null ? undefined : Math.round(r.barEur), // booked revenue not delivered if the last-3-days average pace continues
+      avg_daily_units_last_3_days: Math.round(r.avg3), consecutive_days_below_daily_goal: r.streak,
+      kpis: r.kpis.map(k => ({ kpi: k.label, target: k.target, actual: k.actual, unit: k.unit || "%", lower_is_better: k.lowerBetter || undefined })),
+      focus_period_avg: { ctr_pct: avg("ctr"), vtr_pct: avg("vtr"), viewability_pct: avg("vw") },
+      daily: (mode === "end" ? d : d.slice(-10)).map(x => ({ dt: x.dt, units: x.units, goal: x.goal, ctr: x.ctr && +x.ctr.toFixed(2), vtr: x.vtr && +x.vtr.toFixed(1), vw: x.vw && +x.vw.toFixed(1) })),
+      jira_brief: r.jira?.brief?.slice(0, 800),
+      previous_update: prevSnapshot(r.id) || undefined,
+      flight_insights: mode === "end" ? flightInsights(r) || undefined : undefined,
+      targeting_insights: mode === "end" && r.targeting ? tgtView(r, 10) : undefined,
+      buying_engine_strategies: r.strategies?.length ? r.strategies.slice(0, 10).map(s => ({ strategy: s.name, share_pct: s.share_pct, ctr_pct: s.ctr_pct, viewability_pct: s.viewability_pct, vtr_pct: s.vcr_pct })) : undefined,
+      performance_internal_report: r.perf ? {
+        price_type: r.perf.price_type, price: r.perf.price, kpi: r.perf.kpi_name, kpi_target: r.perf.kpi_target, budget_eur: r.perf.budget,
+        totals: r.perf.total, pacing_index_total: r.perf.pacing_index_total, pacing_index_yesterday: r.perf.pacing_index_yesterday, pacing_label: r.perf.pacing_label,
+        daily: (mode === "end" ? r.perf.daily : r.perf.daily.slice(-10)),
+        tactics: mode === "end" ? r.perf.tactics : undefined
+      } : undefined
+    };
+  });
+  const tables = state.files.filter(f => f.kind === "table").map(f => `### File "${f.name}" (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})\n${f.text}`).join("\n\n");
+  const imgs = state.files.filter(f => f.kind === "image").map((f, i) => `Image ${i + 1}: "${f.name}" (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})`).join("\n");
+  const toneTxt = {
+    "Short": `SHORT — the CSM reads it in 15 seconds. Per campaign: ONE or TWO sentences giving the verdict and the single most important reason, with at most 2 figures. No bullets. Whole message under ${mode === "end" ? 160 : 90} words + ${mode === "end" ? 50 : 30} words per extra campaign.`,
+    "Detailed": `DETAILED — a real narrative. Per campaign: a short paragraph that tells the story (how it's going, why, what it means for the client, what we're watching or what we learned), then ${mode === "end" ? "the where-it-worked paragraph and the recommendations" : "nothing else"}. Explain causes when the data shows them (e.g. a weekend dip, a context driving clicks). Max 5 figures per campaign, each one interpreted.`,
+    "Factual": `FACTUAL — neutral, scannable, no storytelling and no adjectives. Per campaign, a "- " bullet per metric in the form "Metric: value vs target → verdict" (verdict = on track / above target / below target / behind / expected). Then one plain sentence with the conclusion. No greeting fluff beyond "Hi <name>,".`
+  }[state.tone] || "";
+  const sig = $("#sig").value || "Enzo";
+  return `You are ${sig}, Operations Market Lead BNL (Belgium + Netherlands) at Seedtag. Write a campaign status feedback for the CSM(s), to be posted as a comment in Jira.
+
+RULES
+WRITING STYLE — this is the most important part:
+- Give a REAL FEEDBACK, not a data dump. For each campaign answer: is it going well or not, why, and what does it mean (for delivery, for the client, for the end of the flight)? Every figure you quote must serve that point and be interpreted ("CTR is **0.82%**, well above the 0.60% target — the audience is responding"). Never list numbers without saying what they mean. Leave out figures that don't change the message.
+- The chosen LENGTH/TONE below changes the format a lot — follow it strictly.
+- Write like a person, not a report. Picture ${sig} typing a quick comment to a colleague he works with every day: relaxed, direct, friendly. English.
+- Mostly short paragraphs of natural sentences. Use bullets only when listing 3+ similar items; never one bullet per metric.
+- Don't recite every metric. Pick what matters, say what it means ("we're slightly behind, nothing worrying", "CTR is doing really well"), and move on. One idea per sentence, varied sentence length.
+- Plain words and contractions (we're, it's, didn't). Avoid stiff/AI phrasing: no "Overall,", "It's worth noting", "In summary", "I hope this finds you well", "Please don't hesitate", "Additionally", "Furthermore", "delve", "robust", "leverage", "ensure".
+- No emojis, no exclamation marks overload (one at most).
+- NO signature and no sign-off name at the end (the Jira comment already shows the author). End with a natural closing line, not a formula.
+- Greet the CSM(s) by first name (from "csm"). One consolidated message, with one section per CRM ID, headed like: **CRM_ID · short campaign name — status** (status in plain words: on track / under pacing / to watch / not started / ended).
+- Put the important figures in **bold** (pacing %, delivered vs booked, KPI actual vs target, days left, budget at risk). Don't bold everything — only the numbers that matter.
+${mode === "update" ? `TYPE: MID-FLIGHT UPDATE — concise and factual.
+- 1 sentence overall summary, then per campaign 2–4 short lines: pacing to date and days left, KPIs vs targets (above/below and by how much), any notable trend in the focus period, anything from extra files.
+- Under pacing = delivered below the daily goal for several consecutive days (consecutive_days_below_daily_goal). State it plainly with the figure.
+- NO recommendations in a mid-flight update. Only state facts; if something needs attention, say we're keeping an eye on it.
+- End with one short line on when the next update comes.` : `TYPE: END-OF-CAMPAIGN REPORT — precise, covering the whole flight.
+- Opening: 1–2 sentence overall verdict.
+- Per campaign: final delivery vs booking, each KPI final vs target (above/below and by how much), how delivery and KPIs evolved over the flight (start, middle, end — use the daily data), notable highs/lows, and anything from extra files.
+- Then a final section **Recommendations for next time**: 2–3 bullets, built from these levers (use the ones the data supports, in this order of priority):
+  1. Capitalise on what worked: name the strategies, contexts, publishers or devices that performed best and suggest leaning on them next time.
+  2. Add formats: if the campaign was display, suggest adding video or CTV; if it was video, suggest adding display or CTV (pick what fits; never suggest the same format again as a "new" one).
+  3. More budget next time: ONLY if delivery went fine (fully delivered, no pacing issues) — say the campaign had room to scale.
+  NEVER recommend changing or adding creatives. No other generic advice.`}
+- If "buying_engine_strategies" is present (campaign served on Buying Engine), mention the strategies: ${mode === "end" ? "add a 4th bullet \"- **Strategies:** …\" in Where it performed (which strategy carried volume, which performed best on the KPI)" : "one short sentence on which strategy carries the volume and which performs best on the KPI, only if it says something useful"}.
+- If "previous_update" is present, mention how key figures moved since that update (e.g. "CTR up from 0.58% to **0.62%** since last week"), briefly.
+- PERFORMANCE campaigns ("performance_internal_report" present): use those figures as the main source — impressions, clicks, client spend vs budget (spent %), CPC/CPM, and the KPI (visits or qualified visits) with CPV when there are visits. "pacing_index" is spend pacing vs plan (negative = behind). Never mention media cost or margin.
+${mode === "end" ? `- Include a section **Where it performed** written as exactly 3 short bullets — "- **Contexts:** …", "- **Publishers:** …", "- **Devices:** …". Each bullet: one sentence, max 3 figures, saying who led on volume and who stood out (best/worst) on the chosen metric. Use readable names exactly as given (e.g. "Food & drink", not "food-and-drink"). No lists of every value. Content: top contexts and publishers by volume, and those with the best CTR/VTR (only if they had meaningful volume, e.g. ≥ 2% share), plus the device split — from "targeting_insights" — use ONLY the metrics listed in its "metrics" field (the ops lead chose them). Name them plainly (e.g. "automotive and personal finance pages", "schadeautos.nl").
+- Base the recommendations ONLY on what the data shows: "buying_engine_strategies", "targeting_insights" (contexts, publishers, devices), "flight_insights" (weekly trend, weekday pattern, best/worst days) and, for performance, the "tactics" breakdown. No generic advice.` : ""}
+- Delivery rules: DIRECT campaigns never deliver more than 100% of the booking — if projected delivery is 100% it means full delivery, possibly ahead of schedule; never talk about over-delivery for direct. PMP campaigns can run ahead of schedule early on, and usually slow down at the end, finishing around 90–95% of the budget because of fees — that is normal, not a problem.
+- Never recommend changing or adding creatives.
+- Use only the numbers provided. CTR with 2 decimals, other percentages with 1. Big numbers with spaces as thousands separators. Never invent data. If a KPI has no actual available, say it isn't measured in our data.
+- Jira markdown only: **bold**, line breaks, "- " bullets. No # headings, no tables.
+- LENGTH/TONE: ${toneTxt}
+- ${mode === "end" ? "Period: whole flight." : "Focus period: " + (period === "flight" ? "whole flight" : "last " + period + " days") + "."} Today is ${isoDaysAgo(0)}; data is up to yesterday.
+- Output ONLY the comment text.
+
+${(() => {
+  const rules = state.rules.filter(x => x.on !== false).map(x => "- " + x.text).join("\n");
+  const ex = [...state.examples.filter(x => x.mode === mode), ...state.examples.filter(x => x.mode !== mode)].slice(0, 3).map((x, i) => `--- Example ${i + 1} ---\n${String(x.text).slice(0, 2500)}`).join("\n\n");
+  return (rules ? `\nPREFERENCES OF ${sig.toUpperCase()} (apply to EVERY feedback, whatever the type or tone; they override the rules above when they conflict)\n${rules}\n` : "")
+    + (ex ? `\nPAST FEEDBACKS ${sig.toUpperCase()} APPROVED — match their voice and style (adapt structure/length to the current feedback type), NOT their numbers\n${ex}\n` : "");
+})()}
+CAMPAIGN DATA (JSON)
+${JSON.stringify(data, null, 1)}
+${tables ? "\nEXTRA KPI FILES\n" + tables : ""}
+${imgs ? "\nATTACHED IMAGES (extra KPIs, read them)\n" + imgs : ""}
+${$("#ctx").value.trim() ? "\nFREE CONTEXT FROM OPS\n" + $("#ctx").value.trim() : ""}`;
+}
+async function writeFeedback() {
+  caps();
+  const sample = await sampleP;
+  if (!sample) { note("Claude writing is unavailable in this view.", "err"); return; }
+  renderFeedbackCard(true);
+  try {
+    const opts = { modelTier: "default" };
+    const imgs = state.files.filter(f => f.kind === "image").map(f => f.blob);
+    if (imgs.length) {
+      const lim = await sample.limits?.().catch(() => null);
+      if (lim?.images) opts.images = imgs; else note("Images can't be sent to Claude here — they were skipped.", "err");
+    }
+    const res = await sample(buildPrompt(), opts);
+    state.feedback = (res.text || "").trim(); state.generated = state.feedback; state.editing = false;
+    renderFeedbackCard();
+    saveHistory();
+  } catch (e) {
+    renderFeedbackCard();
+    note(e?.code === "rate_limited" ? "Rate limited — wait a moment then Regenerate." : "Claude could not write the feedback: " + (e?.message || e?.code), "err");
+  }
+}
+
+/* ---------- Jira posting ---------- */
+function askPost() {
+  const keys = [...document.querySelectorAll(".tk:checked")].map(x => x.value);
+  const m = $("#postMsg");
+  if (!keys.length) { m.innerHTML = `<div class="note err" style="margin:12px 0 0">Select at least one ticket.</div>`; return; }
+  if (!state.feedback.trim()) { m.innerHTML = `<div class="note err" style="margin:12px 0 0">Feedback is empty.</div>`; return; }
+  m.innerHTML = `<div class="note info" style="margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">Post this comment on <b>${keys.map(esc).join(", ")}</b>${csmMentions().length ? ` and notify <b>${csmMentions().map(m => esc(m.name)).join(", ")}</b>` : ""}? <button class="btn dark" id="cf">Yes, post</button><button class="btn sec" id="cn">Cancel</button></div>`;
+  $("#cn").onclick = () => m.innerHTML = "";
+  $("#cf").onclick = () => doPost(keys);
+}
+function mdInlineAdf(s) {
+  const out = []; const re = /\*\*(.+?)\*\*/g; let last = 0, m;
+  while ((m = re.exec(s))) { if (m.index > last) out.push({ type: "text", text: s.slice(last, m.index) }); out.push({ type: "text", text: m[1], marks: [{ type: "strong" }] }); last = re.lastIndex; }
+  if (last < s.length) out.push({ type: "text", text: s.slice(last) });
+  return out.filter(n => n.text);
+}
+function mdToAdf(md, mentions) {
+  const content = []; let list = null, para = [];
+  const paraNode = lines => { const c = []; lines.forEach((l, i) => { if (i) c.push({ type: "hardBreak" }); c.push(...mdInlineAdf(l)); }); return { type: "paragraph", content: c }; };
+  const flushP = () => { if (para.length) { content.push(paraNode(para)); para = []; } };
+  const flushL = () => { if (list) { content.push({ type: "bulletList", content: list.map(x => ({ type: "listItem", content: [paraNode([x])] })) }); list = null; } };
+  String(md || "").split(/\r?\n/).forEach(line => {
+    const m = line.match(/^\s*[-•*]\s+(.*)$/);
+    if (m && !/^\s*\*\*/.test(line)) { flushP(); (list ||= []).push(m[1]); }
+    else if (!line.trim()) { flushP(); flushL(); }
+    else { flushL(); para.push(line); }
+  });
+  flushP(); flushL();
+  // @mention the CSM(s) in the greeting (first paragraph)
+  const first = content.find(n => n.type === "paragraph");
+  if (first && mentions.length) {
+    const done = new Set();
+    first.content = first.content.flatMap(n => {
+      if (n.type !== "text" || n.marks) return [n];
+      let parts = [n];
+      mentions.forEach(mn => {
+        if (done.has(mn.id)) return;
+        parts = parts.flatMap(p => {
+          if (p.type !== "text" || done.has(mn.id)) return [p];
+          const i = p.text.search(new RegExp("\\b" + mn.first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b"));
+          if (i < 0) return [p];
+          done.add(mn.id);
+          return [{ type: "text", text: p.text.slice(0, i) }, { type: "mention", attrs: { id: mn.id, text: "@" + mn.name } }, { type: "text", text: p.text.slice(i + mn.first.length) }].filter(x => x.type === "mention" || x.text);
+        });
+      });
+      return parts;
+    });
+  }
+  return { version: 1, type: "doc", content };
+}
+function csmMentions() {
+  const seen = new Map();
+  (state.results || []).forEach(r => { const id = r.jira?.csmId, name = r.jira?.csm || r.csm; if (id && name && !seen.has(id)) seen.set(id, { id, name, first: name.split(" ")[0] }); });
+  return [...seen.values()];
+}
+async function postComment(key, md, mention = true) {
+  if (mention) {
+    const mn = csmMentions();
+    if (mn.length) {
+      try { return await call(JIRA_SRV, "addCommentToJiraIssue", { cloudId: CLOUD, issueIdOrKey: key, commentBody: JSON.stringify(mdToAdf(md, mn)), contentFormat: "adf" }); }
+      catch (e) { console.warn("ADF post failed, falling back to markdown", e); }
+    }
+  }
+  return call(JIRA_SRV, "addCommentToJiraIssue", { cloudId: CLOUD, issueIdOrKey: key, commentBody: md, contentFormat: "markdown" });
+}
+async function doPost(keys) {
+  const m = $("#postMsg"); m.innerHTML = `<div class="muted" style="margin-top:12px"><span class="spin dk"></span>Posting…</div>`;
+  const done = [], failed = [];
+  for (const k of keys) {
+    try { await postComment(k, state.feedback, true); done.push(k); }
+    catch (e) { failed.push(k + " (" + e.message + ")"); }
+  }
+  m.innerHTML = (done.length ? `<div class="note ok" style="margin:12px 0 0">Posted on ${done.map(k => `<a href="https://seedtag.atlassian.net/browse/${esc(k)}" target="_blank">${esc(k)}</a>`).join(", ")} ✓</div>` : "")
+    + (failed.length ? `<div class="note err" style="margin:12px 0 0">Failed: ${esc(failed.join("; "))}</div>` : "");
+  if (done.length) { saveHistory(done); saveExample(); markDraftPosted(done); }
+}
+
+/* ---------- inline comment bubble ---------- */
+function closeBubble() { $("#bubble")?.remove(); }
+function onSelect() {
+  setTimeout(() => {
+    const sel = window.getSelection(); const txt = sel ? sel.toString().trim() : "";
+    if (!txt || txt.length < 3 || !$("#fbView")?.contains(sel.anchorNode)) return;
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    closeBubble();
+    const b = document.createElement("div"); b.id = "bubble";
+    b.style.top = (window.scrollY + rect.bottom + 8) + "px";
+    b.style.left = Math.max(8, Math.min(window.scrollX + rect.left, document.documentElement.clientWidth - 336)) + "px";
+    b.innerHTML = `<div class="q">“${esc(txt.slice(0, 160))}${txt.length > 160 ? "…" : ""}”</div>
+      <textarea id="bComment" placeholder="What's wrong? (FR or EN)"></textarea>
+      <label><input type="checkbox" id="bRemember">Remember for next feedbacks</label>
+      <div class="actions"><button class="btn sec" id="bCancel">Cancel</button><button class="btn dark" id="bFix">Fix</button></div>`;
+    document.body.appendChild(b);
+    $("#bComment").focus();
+    $("#bCancel").onclick = closeBubble;
+    $("#bComment").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#bFix").click(); if (e.key === "Escape") closeBubble(); });
+    $("#bFix").onclick = () => fixPassage(txt, $("#bComment").value.trim(), $("#bRemember").checked);
+  }, 10);
+}
+document.addEventListener("mousedown", e => { const b = $("#bubble"); if (b && !b.contains(e.target) && !$("#fbView")?.contains(e.target)) closeBubble(); });
+async function fixPassage(passage, comment, remember) {
+  if (!comment) { $("#bComment").focus(); return; }
+  caps(); const sample = await sampleP;
+  if (!sample) { note("Claude is unavailable in this view.", "err"); return; }
+  const btn = $("#bFix"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Fixing…`;
+  const prompt = `You edit a campaign feedback written in Jira markdown (English). The ops lead selected a passage and commented on it.
+Rewrite ONLY the part of the text that contains the selected passage (and its immediate sentence/bullet if needed) so that it addresses the comment. Keep EVERYTHING else exactly identical, character for character. Keep the same Jira markdown (**bold** for key figures, "- " bullets). Never invent numbers; you may only reuse or remove numbers already in the text. Never recommend changing or adding creatives.
+${remember ? `Also turn the comment into ONE general, reusable writing rule for future feedbacks (short imperative, English, under 25 words), or "" if it is only about this specific campaign.` : ""}
+Return JSON only: {"revised": "<the full feedback text>"${remember ? `, "rule": "<rule or empty>"` : ""}}
+
+SELECTED PASSAGE (as displayed, formatting removed):
+${passage}
+
+COMMENT FROM THE OPS LEAD:
+${comment}
+
+FULL FEEDBACK:
+${state.feedback}`;
+  try {
+    let out;
+    if (sample.json) out = await sample.json(prompt, { modelTier: "quick" });
+    else { const t = (await sample(prompt)).text; out = JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)); }
+    if (!out?.revised) throw new Error("empty answer");
+    const before = new Set([...$("#fbView").querySelectorAll("p,li")].map(e => e.textContent));
+    state.feedback = String(out.revised).trim();
+    closeBubble(); renderFeedbackCard();
+    $("#fbView").querySelectorAll("p,li").forEach(e => { if (!before.has(e.textContent)) { e.classList.add("chg"); setTimeout(() => e.classList.remove("chg"), 4000); } });
+    if (remember && out.rule) { addRules([out.rule]); note("Rule saved: " + out.rule, "ok"); }
+    else if (remember) note("Fixed — this comment looked campaign-specific, so no rule was saved.", "info");
+    saveHistory();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = "Fix";
+    note("Could not fix the passage: " + (e?.message || e?.code || e), "err");
+  }
+}
+
+/* ---------- training (db) ---------- */
+let rulesDoc = null, exCol = null;
+function initTraining(db) {
+  rulesDoc = db.doc("style/rules"); exCol = db.collection("examples");
+  rulesDoc.onSnapshot(s => { const d = s?.data ? s.data() : s; state.rules = d?.rules || []; renderRules(); }, e => console.warn(e));
+  exCol.orderBy("ts", "desc").limit(20).onSnapshot(s => {
+    state.examples = s.docs ? s.docs.map(d => ({ id: d.id, ...(d.data ? d.data() : d) })) : (Array.isArray(s) ? s : []);
+    $("#exCount").textContent = state.examples.length ? `The 3 most recent are used as style models. Saved automatically when you post a feedback to Jira.` : "Feedbacks you post to Jira will be saved here as examples.";
+    renderExamples();
+  }, e => console.warn(e));
+}
+function renderExamples() {
+  const box = $("#exList"); box.innerHTML = "";
+  state.examples.forEach((x, i) => {
+    const d = document.createElement("div"); d.className = "ex";
+    const top = document.createElement("div"); top.style.cssText = "display:flex;justify-content:space-between;gap:8px";
+    const l = document.createElement("b"); l.textContent = `${new Date(x.ts).toLocaleDateString("fr-BE")} · ${x.mode === "end" ? "end report" : "update"} · ${(x.crms || []).join(", ")}${i < 3 ? "  (in use)" : ""}`;
+    const del = document.createElement("button"); del.textContent = "×"; del.title = "Remove this example"; del.style.cssText = "border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700";
+    del.onclick = async () => { try { await exCol.doc(x.id).delete(); } catch (e) { note("Could not remove: " + (e?.message || e), "err"); } };
+    top.append(l, del);
+    const t = document.createElement("div"); t.className = "t"; t.textContent = String(x.text || "").replace(/\*\*/g, "");
+    d.append(top, t); box.appendChild(d);
+  });
+}
+function renderRules() {
+  const box = $("#rules"); box.innerHTML = "";
+  if (!state.rules.length) { box.innerHTML = `<div class="muted">No rules yet. Edit a feedback, then use “Learn from my edits”.</div>`; return; }
+  state.rules.forEach((r, i) => {
+    const d = document.createElement("div"); d.className = "rl" + (r.on === false ? " off" : "");
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = r.on !== false; c.title = "Active";
+    c.onchange = () => { state.rules[i].on = c.checked; saveRules(); };
+    const s = document.createElement("span"); s.textContent = r.text; s.title = "Double-click to edit";
+    s.ondblclick = () => { s.contentEditable = "true"; s.focus(); };
+    s.onblur = () => { if (s.isContentEditable) { s.contentEditable = "false"; const v = s.textContent.trim(); if (v && v !== r.text) { state.rules[i].text = v; saveRules(); } else s.textContent = r.text; } };
+    s.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); s.blur(); } };
+    const b = document.createElement("button"); b.textContent = "×"; b.title = "Delete"; b.onclick = () => { state.rules.splice(i, 1); saveRules(); };
+    d.append(c, s, b); box.appendChild(d);
+  });
+}
+async function saveRules() {
+  renderRules();
+  if (!rulesDoc) { note("Rules can't be saved in this view.", "err"); return; }
+  try { await rulesDoc.set({ rules: state.rules, ts: Date.now() }); } catch (e) { note("Could not save rules: " + (e?.message || e), "err"); }
+}
+function addRules(list) {
+  list.forEach(t => { t = String(t).trim(); if (t && !state.rules.some(r => r.text.toLowerCase() === t.toLowerCase())) state.rules.push({ text: t, on: true, ts: Date.now() }); });
+  saveRules();
+}
+$("#addRule").onclick = () => { const v = $("#newRule").value.trim(); if (v) { addRules([v]); $("#newRule").value = ""; } };
+$("#newRule").addEventListener("keydown", e => { if (e.key === "Enter") $("#addRule").click(); });
+async function saveExample() {
+  if (!exCol || !state.feedback) return;
+  try { await exCol.doc("ex_" + Date.now()).set({ ts: Date.now(), mode: feedbackMode(), crms: (state.results || []).map(r => r.id), text: state.feedback }); }
+  catch (e) { console.warn("example save failed", e); }
+}
+async function learnFromEdits() {
+  caps();
+  const sample = await sampleP; const box = $("#learnBox");
+  if (!sample) { note("Claude is unavailable in this view.", "err"); return; }
+  box.innerHTML = `<div class="muted" style="margin-top:12px"><span class="spin dk"></span>Comparing your version with mine…</div>`;
+  const prompt = `An ops lead edited an AI-generated campaign feedback (posted to CSMs in Jira). Compare the two versions and infer the GENERAL, reusable writing rules behind his edits (style, structure, what to include or leave out, wording, length, formatting). Ignore edits that only fix a specific number or fact for this one campaign.
+Existing rules (don't repeat them): ${JSON.stringify(state.rules.map(r => r.text))}
+Return JSON only: {"rules": ["short imperative rule", ...]} with 1 to 5 rules, each under 25 words, in English. Return {"rules": []} if nothing general can be learned.
+
+=== GENERATED VERSION ===
+${state.generated}
+
+=== EDITED VERSION ===
+${state.feedback}`;
+  try {
+    let out;
+    if (sample.json) out = await sample.json(prompt, { modelTier: "quick" });
+    else { const t = (await sample(prompt)).text; out = JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)); }
+    const rules = (out?.rules || []).filter(Boolean);
+    if (!rules.length) { box.innerHTML = `<div class="note info" style="margin:12px 0 0">No general rule found in these edits — they look campaign-specific.</div>`; return; }
+    box.innerHTML = `<div class="cand"><b>Proposed rules</b> — keep the ones that are right (you can rephrase them after saving):
+      ${rules.map((r, i) => `<label><input type="checkbox" class="cr" data-i="${i}" checked><span>${esc(r)}</span></label>`).join("")}
+      <div class="actions"><button class="btn sec" id="crNo">Discard</button><button class="btn dark" id="crYes">Save selected rules</button></div></div>`;
+    $("#crNo").onclick = () => box.innerHTML = "";
+    $("#crYes").onclick = () => {
+      addRules([...document.querySelectorAll(".cr:checked")].map(c => rules[+c.dataset.i]));
+      state.generated = state.feedback;
+      box.innerHTML = `<div class="note ok" style="margin:12px 0 0">Rules saved — they'll apply to every next feedback.</div>`;
+      const l = $("#learn"); if (l) l.disabled = true;
+    };
+  } catch (e) { box.innerHTML = `<div class="note err" style="margin:12px 0 0">Could not analyse the edits: ${esc(e?.message || e?.code || e)}</div>`; }
+}
+
+/* ---------- drafts (written by the Monday scheduled task) ---------- */
+let draftsCol = null; state.drafts = [];
+let watchDoc = null; state.watch = [];
+$("#dOps").onchange = () => renderDrafts();
+function renderWatch() {
+  $("#watchInfo").textContent = state.watch.length ? `${state.watch.length} campaign(s) selected:` : "No campaign selected yet.";
+  if (state.drafts) renderDrafts();
+  const box = $("#watch"); box.innerHTML = "";
+  state.watch.forEach(id => { const c = document.createElement("span"); c.className = "chip"; c.textContent = id;
+    const b = document.createElement("button"); b.textContent = "×"; b.onclick = () => saveWatch(state.watch.filter(x => x !== id)); c.appendChild(b); box.appendChild(c); });
+}
+async function saveWatch(list) {
+  state.watch = [...new Set(list.map(String))]; renderWatch();
+  if (!watchDoc) { note("Selection can't be saved in this view.", "err"); return; }
+  try { await watchDoc.set({ crms: state.watch, ts: Date.now() }); } catch (e) { note("Could not save the selection: " + (e?.message || e), "err"); }
+}
+$("#watchAdd").onclick = () => { const p = $("#crmInput").value.trim(); if (p) { addCrms(p); $("#crmInput").value = ""; }
+  if (!state.crms.length) { note("Add CRM IDs first.", "err"); return; } saveWatch([...state.watch, ...state.crms]); note(`${state.crms.length} campaign(s) added to Monday drafts.`, "ok"); };
+function initDrafts(db) {
+  watchDoc = db.doc("config/watchlist");
+  watchDoc.onSnapshot(s => { const d = s?.data ? s.data() : s; state.watch = d?.crms || []; renderWatch(); }, e => console.warn(e));
+  draftsCol = db.collection("drafts");
+  draftsCol.orderBy("ts", "desc").limit(150).onSnapshot(s => {
+    state.drafts = s.docs ? s.docs.map(d => ({ id: d.id, ...(d.data ? d.data() : d) })) : (Array.isArray(s) ? s : []);
+    renderDrafts();
+  }, e => console.warn(e));
+  renderWatch();
+}
+function renderDrafts() {
+  const box = $("#drafts"); const W = new Set(state.watch);
+  const opsList = [...new Set(state.drafts.map(d => d.ops).filter(Boolean))].sort(), sel = $("#dOps"), cv = sel.value;
+  sel.innerHTML = `<option value="">All ops</option>` + opsList.map(o => `<option ${o === cv ? "selected" : ""}>${esc(o)}</option>`).join("");
+  const D = state.drafts.filter(d => !sel.value || d.ops === sel.value).filter(d => d.status !== "dismissed" && (!W.size || (d.crms || []).some(c => W.has(String(c)))));
+  if (!D.length) { $("#draftBadge").textContent = ""; box.innerHTML = `<div class="muted">No drafts yet — they're prepared every Monday morning for the campaigns selected on the left.</div>`; return; }
+  const latest = D[0].batch; const cur = D.filter(d => d.batch === latest);
+  const todo = cur.filter(d => d.status !== "posted").length;
+  $("#draftBadge").textContent = todo ? String(todo) : "";
+  box.innerHTML = `<div class="muted" style="margin-bottom:4px;display:flex;justify-content:space-between;gap:8px"><span>Batch of ${esc(latest || "")} · ${cur.length - todo}/${cur.length} posted · flagged first</span><span><a href="#drafts" id="delPosted" style="color:var(--grey)">delete posted</a> · <a href="#drafts" id="delAll" style="color:var(--grey)">delete all</a></span></div><div id="delConfirm"></div>`;
+  const delMany = async list => { for (const d of list) { try { await draftsCol.doc(d.id).delete(); } catch (e) { note("Could not delete " + d.id, "err"); } } };
+  $("#delPosted").onclick = ev => { ev.preventDefault(); delMany(cur.filter(d => d.status === "posted")); };
+  $("#delAll").onclick = ev => { ev.preventDefault(); const c = $("#delConfirm");
+    c.innerHTML = `<div class="note info" style="margin:6px 0">Delete all ${D.length} drafts shown? <button class="btn dark" id="delYes" style="padding:4px 10px">Delete</button> <button class="btn sec" id="delNo" style="padding:4px 10px">Cancel</button></div>`;
+    $("#delNo").onclick = () => c.innerHTML = ""; $("#delYes").onclick = () => delMany(D); };
+  [...cur].sort((a, b) => (a.status === "posted") - (b.status === "posted") || (b.flag ? 1 : 0) - (a.flag ? 1 : 0)).forEach(d => {
+    const el = document.createElement("div"); el.className = "dr";
+    const h4 = document.createElement("h4"); const a = document.createElement("span"); const b = document.createElement("span");
+    a.textContent = (d.status === "posted" ? "✓ " : "") + (d.label || (d.crms || []).join(" + ")); if (d.flag && d.status !== "posted") a.style.color = "var(--coral)";
+    b.className = "muted"; b.textContent = [d.ops && "Ops " + d.ops, d.csm && "CSM " + d.csm, (d.crms || []).join(", ")].filter(Boolean).join(" · ");
+    h4.append(a, b); const pr = document.createElement("p"); pr.textContent = String(d.text || "").replace(/\*\*/g, "").replace(/\n+/g, " ").slice(0, 300);
+    const x = document.createElement("button"); x.textContent = "×"; x.title = "Delete this draft"; x.style.cssText = "border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700;font-size:15px;margin-left:8px";
+    x.onclick = async ev => { ev.stopPropagation(); try { await draftsCol.doc(d.id).delete(); } catch (e) { note("Could not delete: " + (e?.message || e), "err"); } };
+    h4.appendChild(x);
+    el.append(h4, pr);
+    el.onclick = () => { goTab("feedback"); state.crms = [...(d.crms || [])]; renderChips(); renderFiles(); run({ draft: d }); };
+    box.appendChild(el);
+  });
+}
+async function markDraftPosted(keys) {
+  if (!draftsCol || !state.draftId) return;
+  const d = state.drafts.find(x => x.id === state.draftId); if (!d) return;
+  try { const { id, ...rest } = d; await draftsCol.doc(state.draftId).set({ ...rest, status: "posted", posted: keys, final_text: state.feedback }); } catch (e) { console.warn(e); }
+}
+
+/* ---------- history (db) ---------- */
+let histCol = null;
+async function initHistory() {
+  caps();
+  const db = await dbP;
+  if (!db) { $("#hist").innerHTML = `<div class="muted">History unavailable in this view (open the artifact on claude.ai, signed in).</div>`; return; }
+  try {
+    initTraining(db); initDrafts(db);
+    histCol = db.collection("feedbacks");
+    const t = setTimeout(() => { if ($("#hist").dataset.l !== "1") $("#hist").innerHTML = `<div class="muted">History is slow to load…</div>`; }, 10000);
+    histCol.orderBy("ts", "desc").limit(40).onSnapshot(snap => {
+      clearTimeout(t); $("#hist").dataset.l = "1";
+      const docs = snap.docs ? snap.docs.map(d => ({ id: d.id, ...(d.data ? d.data() : d) })) : (Array.isArray(snap) ? snap : []);
+      renderHistory(docs);
+    }, err => { clearTimeout(t); console.warn(err); $("#hist").innerHTML = `<div class="muted">History error: ${esc(err?.message || err)}</div>`; });
+  } catch (e) { $("#hist").innerHTML = `<div class="muted">History unavailable.</div>`; }
+}
+let histDocs = [];
+function renderHistory(docs) {
+  histDocs = docs;
+  const box = $("#hist");
+  if (!docs.length) { box.innerHTML = `<div class="muted">No feedback yet.</div>`; return; }
+  box.innerHTML = "";
+  const shown = state.histAll ? docs : docs.slice(0, 5);
+  shown.forEach(d => {
+    const el = document.createElement("div"); el.className = "h";
+    const a = document.createElement("span"); a.textContent = (d.label || (d.crms || []).join(" + ")) + ((d.crms || []).length > 1 ? ` (${d.crms.length})` : "") + (d.posted?.length ? " ✓" : "");
+    a.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap"; a.title = (d.crms || []).join(", ");
+    const b = document.createElement("span"); b.textContent = new Date(d.ts).toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit" });
+    el.append(a, b); el.title = "Reload this CRM selection and its feedback";
+    el.onclick = () => openHistory(d);
+    box.appendChild(el);
+  });
+  if (docs.length > 5) { const m = document.createElement("div"); m.className = "muted"; m.style.cssText = "cursor:pointer;margin-top:6px;text-decoration:underline";
+    m.textContent = state.histAll ? "Show less" : `Show all (${docs.length})`; m.onclick = () => { state.histAll = !state.histAll; renderHistory(docs); }; box.appendChild(m); }
+}
+function openHistory(d) {
+  state.crms = [...(d.crms || [])]; renderChips(); renderFiles();
+  const main = $("#main"); main.innerHTML = "";
+  main.insertAdjacentHTML("beforeend", `<div class="note info">Saved feedback from ${esc(new Date(d.ts).toLocaleString("fr-BE"))}${d.posted?.length ? " · posted on " + esc(d.posted.join(", ")) : ""}. Hit <b>Generate feedback</b> for a fresh analysis.</div>
+    <div class="card feedback"><h2>Saved feedback</h2><textarea readonly style="width:100%;min-height:320px;background:var(--cream);border:none;border-radius:10px;padding:16px;font:inherit;line-height:1.55">${esc(d.feedback)}</textarea></div>`);
+}
+async function saveHistory(posted) {
+  if (!histCol || !state.feedback) return;
+  try {
+    if (!state.histId) state.histId = "fb_" + Date.now();
+    const ok = (state.results || []).filter(r => !r.missing);
+    const doc = { ts: Date.now(), crms: state.results.map(r => r.id), label: ok[0]?.last?.advertiser?.replace(/ - (Belgium|Netherlands)$/, "") || "", feedback: state.feedback,
+      statuses: Object.fromEntries(state.results.map(r => [r.id, r.status || "NO DATA"])),
+      snap: Object.fromEntries(state.results.filter(r => !r.missing).map(r => [r.id, JSON.parse(JSON.stringify(snapshotOf(r)))])) };
+    const prev = histDocs.find(x => x.id === state.histId);
+    if (posted) doc.posted = [...new Set([...(prev?.posted || []), ...posted])];
+    else if (prev?.posted) doc.posted = prev.posted;
+    await histCol.doc(state.histId).set(doc);
+  } catch (e) { console.warn("history save failed", e); }
+}
+
+/* ---------- live campaigns browser ---------- */
+async function browseLive() {
+  const main = $("#main"); main.innerHTML = `<div class="card empty"><span class="spin dk"></span>Loading live BNL campaigns…</div>`;
+  const y = isoDaysAgo(1);
+  const mk = (cube, dims, meas) => ({ dimensions: dims.map(x => cube + x), measures: meas.map(x => cube + x),
+    timeDimensions: [{ dimension: cube + "dt", dateRange: [y, y] }],
+    filters: [{ member: cube + "country_sold", operator: "equals", values: ["Belgium", "Netherlands"] }], limit: 1000 });
+  const D = "direct_product_line_delivery_tz.", M = "pmp_product_line_delivery_tz.";
+  try {
+    const [dr, pr] = await Promise.all([
+      call(CUBE_SRV, "run_query", { query: mk(D, ["salesforce_crm_id","product_line_name","am","adops","end_dt","days_left","units_pacing_ratio","first_kpi","first_kpi_value","ctr_accumulated","vtr_accumulated","vw_accumulated"], ["impressions"]) }),
+      call(CUBE_SRV, "run_query", { query: mk(M, ["salesforce_crm_id","product_line_name","am","adops","end_dt","days_left","impressions_pacing_ratio","gross_revenue_spent_ratio"], ["impressions"]) }).catch(() => [])
+    ]);
+    const strip = (rows, pre, type) => (Array.isArray(rows) ? rows : []).map(r0 => { const o = { type }; for (const k in r0) o[k.replace(pre, "")] = r0[k]; return o; });
+    const list = [...strip(dr, "direct_product_line_delivery_tz__", "Direct"), ...strip(pr, "pmp_product_line_delivery_tz__", "PMP")]
+      .filter(x => (x.impressions || 0) > 0 && day(x.end_dt) >= isoDaysAgo(0))
+      .map(x => {
+        const pacing = x.units_pacing_ratio ?? x.impressions_pacing_ratio;
+        const a = kpiActual(x.first_kpi, x); const tgt = x.first_kpi_value != null ? x.first_kpi_value * 100 : null;
+        const kpiMiss = a?.val != null && tgt != null && a.val < tgt;
+        return { ...x, pacing, kpiTxt: x.first_kpi ? `${x.first_kpi.replace(/ percentage| number| currency/i, "")} ${a?.val != null ? pct(a.val, 2) : "—"}${tgt != null ? " / " + pct(tgt, 2) : ""}` : "—",
+          flag: (pacing != null && pacing < 95) || kpiMiss };
+      }).sort((a, b) => (b.flag - a.flag) || String(a.adops).localeCompare(String(b.adops)));
+    state.live = list; renderLive();
+  } catch (e) { main.innerHTML = `<div class="note err">Could not load live campaigns: ${esc(e.message)}</div>`; }
+}
+function renderLive() {
+  const L = state.live || [], main = $("#main");
+  const opts = k => [...new Set(L.map(x => x[k]).filter(Boolean))].sort().map(v => `<option>${esc(v)}</option>`).join("");
+  main.innerHTML = `<div class="card"><div class="crm-head"><div><h3>Live BNL campaigns</h3><p>Data of ${dmy(isoDaysAgo(1))} · ${L.length} campaigns · flagged first (pacing &lt; 95% or KPI below target)</p></div>
+    <div style="display:flex;gap:8px"><button class="btn sec" id="liveWatch">Add selected to Monday drafts</button><button class="btn dark" id="liveAdd">Add selected →</button></div></div>
+    <div class="row2" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <select id="fOps"><option value="">All ops</option>${opts("adops")}</select>
+      <select id="fCsm"><option value="">All CSMs</option>${opts("am")}</select>
+      <select id="fFlag"><option value="">All statuses</option><option value="1">To watch only</option></select></div>
+    <div style="max-height:620px;overflow:auto"><table id="liveT"></table></div></div>`;
+  const draw = () => {
+    const o = $("#fOps").value, c = $("#fCsm").value, f = $("#fFlag").value;
+    const rows = L.filter(x => (!o || x.adops === o) && (!c || x.am === c) && (!f || x.flag));
+    $("#liveT").innerHTML = `<tr><th><input type="checkbox" id="liveAll"></th><th>CRM</th><th>Campaign</th><th>Ops</th><th>CSM</th><th>Pacing</th><th>First KPI</th><th>Ends</th></tr>` +
+      rows.map(x => `<tr><td><input type="checkbox" class="lv" value="${esc(x.salesforce_crm_id)}" ${state.crms.includes(String(x.salesforce_crm_id)) ? "checked" : ""}></td><td>${esc(x.salesforce_crm_id)}</td><td>${esc(String(x.product_line_name || "").replace(/\t/g, " · ").slice(0, 70))} <span class="muted">${esc(x.type)}</span></td><td>${esc(x.adops || "—")}</td><td>${esc(x.am || "—")}</td><td class="${x.pacing == null ? "" : x.pacing >= 95 ? "d-ok" : "d-ko"}">${pct(x.pacing, 0)}</td><td>${esc(x.kpiTxt)}</td><td>${dmy(x.end_dt)}</td></tr>`).join("");
+    $("#liveAll").onchange = e => document.querySelectorAll(".lv").forEach(c => c.checked = e.target.checked);
+  };
+  ["#fOps", "#fCsm", "#fFlag"].forEach(s => $(s).onchange = draw); draw();
+  $("#liveWatch").onclick = () => { const ids = [...document.querySelectorAll(".lv:checked")].map(c => c.value); if (!ids.length) return; saveWatch([...state.watch, ...ids]); note(`${ids.length} campaign(s) added to Monday drafts.`, "ok"); };
+  $("#liveAdd").onclick = () => { const ids = [...document.querySelectorAll(".lv:checked")].map(c => c.value); if (!ids.length) return; addCrms(ids.join(" ")); note(`${ids.length} campaign(s) added — hit Generate feedback.`, "ok"); };
+}
+$("#browse").onclick = browseLive;
+const resById = id => (state.results || []).find(x => x.id === id);
+$("#main").addEventListener("click", e => {
+  const t = e.target;
+  if (t.classList?.contains("tgx")) { const r = resById(t.dataset.crm); (r.tgtHidden ||= new Set()).add(t.dataset.k); r.insOpen = true; renderResults(); }
+  if (t.dataset?.reset) { const r = resById(t.dataset.reset); r.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); r.insOpen = true; renderResults(); }
+  if (t.classList?.contains("tgpost")) {
+    const r = resById(t.dataset.crm), box = $("#tgmsg_" + r.id), md = tgtMarkdown(r);
+    box.innerHTML = `<div class="note info" style="margin:10px 0 0"><div style="white-space:pre-wrap;margin-bottom:8px">${mdToHtml(md)}</div><button class="btn dark tgok">Post on ${esc(r.jira.key)}</button> <button class="btn sec tgno">Cancel</button></div>`;
+    box.querySelector(".tgno").onclick = () => box.innerHTML = "";
+    box.querySelector(".tgok").onclick = async () => {
+      box.innerHTML = `<div class="muted" style="margin-top:10px"><span class="spin dk"></span>Posting…</div>`;
+      try { await postComment(r.jira.key, md, false);
+        box.innerHTML = `<div class="note ok" style="margin:10px 0 0">Insights posted on <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a> ✓</div>`; }
+      catch (err) { box.innerHTML = `<div class="note err" style="margin:10px 0 0">${esc(err.message)}</div>`; }
+    };
+  }
+});
+$("#main").addEventListener("change", e => {
+  const t = e.target;
+  if (t.classList?.contains("tgm")) { const r = resById(t.dataset.crm); const s = new Set(r.tgtMetrics || []); t.checked ? s.add(t.dataset.m) : s.delete(t.dataset.m); r.tgtMetrics = Object.keys(METRICS).filter(k => s.has(k)); r.insOpen = true; renderResults(); }
+});
+$("#main").addEventListener("toggle", e => { const d = e.target; if (d.classList?.contains("ins")) { const r = resById(d.dataset.crm); if (r) r.insOpen = d.open; } }, true);
+
+/* ---------- tabs ---------- */
+function showView() {
+  const v = ["feedback", "drafts", "preferences"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "feedback";
+  document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
+  document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("on", a.dataset.v === v));
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", showView); showView();
+const goTab = v => { if (location.hash !== "#" + v) location.hash = v; else showView(); };
+$("#watchBrowse").onclick = () => { goTab("feedback"); browseLive(); };
+$("#watchAddBtn").onclick = () => { const ids = ($("#watchInput").value.match(/\d{5,8}/g) || []); if (!ids.length) return; saveWatch([...state.watch, ...ids]); $("#watchInput").value = ""; };
+$("#watchInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#watchAddBtn").click(); });
+
+/* ---------- main flow ---------- */
+$("#go").onclick = () => run();
+async function run(opts = {}) {
+  const pending = $("#crmInput").value.trim(); if (pending) { addCrms(pending); $("#crmInput").value = ""; }
+  if (!state.crms.length) { note("Add at least one CRM ID.", "err"); return; }
+  const btn = $("#go"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Reading BigQuery & Jira…`;
+  state.histId = null; state.feedback = ""; state.draftId = null;
+  $("#main").innerHTML = `<div class="card empty"><span class="spin dk"></span>Fetching data for ${state.crms.map(esc).join(", ")}…</div>`;
+  try {
+    const ids = [...state.crms];
+    const [rows, jira] = await Promise.all([
+      fetchCube(ids),
+      fetchJira(ids).catch(e => { note("Jira: " + e.message, "err"); return {}; })
+    ]);
+    const missing = ids.filter(id => !rows.some(r => String(r.salesforce_crm_id) === id));
+    if (missing.length) { try { rows.push(...await fetchPmp(missing)); } catch (e) { note("PMP lookup: " + e.message, "err"); } }
+    const pt = jira._pt || {}, perf = {};
+    if (Object.keys(pt).length) {
+      btn.innerHTML = `<span class="spin"></span>Reading internal reports…`;
+      await Promise.all(ids.filter(id => pt[id]).map(async id => {
+        try { perf[id] = await fetchInternalReport(pt[id]); if (!perf[id]) note(`No internal report found for ${pt[id]}.`, "info"); }
+        catch (e) { note(`Internal report ${pt[id]}: ${e.message}`, "err"); }
+      }));
+    }
+    const streakN = Math.max(1, +$("#streakN").value || 3);
+    state.results = ids.map(id => {
+      const own = rows.filter(r => String(r.salesforce_crm_id) === id);
+      if (!own.length && perf[id]) return analysePerf(id, perf[id], jira[id], streakN);
+      const res = analyse(id, own, jira[id], streakN); if (perf[id] && !res.missing) res.perf = perf[id]; return res;
+    });
+    const wantEnd = $("#mode").value === "end" || ($("#mode").value === "auto" && state.results.filter(x => !x.missing).every(x => x.ended));
+    const tgt = state.results.filter(x => !x.missing && x.type !== "Performance" && (x.ended || wantEnd));
+    if (tgt.length) {
+      btn.innerHTML = `<span class="spin"></span>Reading targeting insights…`;
+      await Promise.all(tgt.map(async x => { try { x.targeting = await fetchTargeting(x);
+        if (x.targeting) { x.tgtMetrics = x.targeting.isVideo ? ["viewability", "vcr"] : ["ctr", "viewability"]; x.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); } } catch (e) { note(`Targeting insights ${x.id}: ${e.message}`, "err"); } }));
+    }
+    const se = state.results.filter(x => !x.missing && x.type !== "Performance");
+    if (se.length) {
+      btn.innerHTML = `<span class="spin"></span>Reading Buying Engine strategies…`;
+      await Promise.all(se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } }));
+    }
+    renderResults();
+    if (opts.draft) { note("Draft prepared on " + new Date(opts.draft.ts).toLocaleString("fr-BE") + " — figures above are refreshed, the text isn't. Regenerate if needed.", "info"); state.feedback = opts.draft.text; state.generated = opts.draft.text; state.editing = false; state.draftId = opts.draft.id; renderFeedbackCard(); return; }
+    btn.innerHTML = `<span class="spin"></span>Writing feedback…`;
+    await writeFeedback();
+  } catch (e) {
+    $("#main").innerHTML = `<div class="note err">Could not load data: ${esc(e.message)}</div>`;
+  } finally { btn.disabled = false; btn.textContent = "Generate feedback"; }
+}
+$("#period").onchange = () => state.results && renderResults();
+$("#mode").onchange = () => { if (state.results) { renderResults(); writeFeedback(); } };
+
+initHistory();
+</script>
+</body>
+</html>
