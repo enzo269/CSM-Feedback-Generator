@@ -101,6 +101,15 @@ The page is one self-contained `index.html` (CSS + JS inline; libraries from cdn
 - An artifact can only be edited by people of the owner's Claude organization. A collaborator from another Claude team works through this repo: open a PR on `index.html`, then the owner republishes; or the collaborator publishes their **own copy** in their Claude (their own artifact, own database, own connectors).
 - The connectors use the **viewer's** credentials: a collaborator needs access to the same data (Seedtag cube, Jira, Drive, data lake) and the same connector display names (or adapt the constants).
 
+### Collaboration workflow
+This repo is the single source of truth for the code. Each published artifact (the owner's, and any collaborator's copy) is a separate deployment with its **own database** (history, preferences, drafts): changes in one artifact never reach the repo or another artifact on their own.
+
+1. **Never commit to `main` directly.** Create a branch, commit, open a pull request. Recommended: protect `main` (*Settings → Branches → Add rule → Require a pull request before merging*).
+2. **Keep PRs small and merge them quickly** — almost everything lives in one `index.html`, so long-lived branches conflict. Say who is working on which part (prompt, data fetch, UI…).
+3. **Pull/download the latest `main` before starting** a change.
+4. **After a merge, each person republishes their own artifact** from `main` (same URL, same capabilities from `config/capabilities.json`). Nothing republishes automatically.
+5. **Shared artifact (one URL, shared data):** only possible when both people are in the same Claude organization. The owner then shares the artifact with edit access, and the `db` rules in `config/capabilities.json` must be relaxed from `owner` to `admin` for the paths that should be shared.
+
 ---
 
 ## 6. Scheduled task (Monday drafts)
