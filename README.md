@@ -129,6 +129,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - History: a saved feedback reopens editable, copyable, exportable and postable on its Jira tickets.
 - Removed the Signature setting (author name is the `AUTHOR` constant).
 - Seedtag palette only (no more green / amber / blue).
+- PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **v1** — first version.
 

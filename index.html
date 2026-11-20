@@ -814,8 +814,10 @@ async function exportPdf() {
     const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands)$/, "")).filter(Boolean))].join(", ") || state.histBase?.label || "Campaign report";
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;background:#EBE6E4;font-family:'Instrument Sans',sans-serif;color:#000";
-    wrap.innerHTML = `<div style="background:#FF6B7C;color:#000;padding:22px 28px"><div style="font-size:12px;opacity:.9">Seedtag · ${feedbackMode() === "end" ? "End-of-campaign report" : "Campaign update"} · ${new Date().toLocaleDateString("en-GB")}</div><div style="font-size:24px;font-weight:600;margin-top:4px">${esc(title)}</div></div>
+    // wide tables (tactics, targeting) wrap inside the 900px page instead of being cut on the right
+    wrap.innerHTML = `<style>.pdfw table{table-layout:auto;font-size:11px}.pdfw td,.pdfw th{word-break:break-word;padding:5px 6px}.pdfw .card{break-inside:avoid}</style><div style="background:#FF6B7C;color:#000;padding:22px 28px"><div style="font-size:12px;opacity:.9">Seedtag · ${feedbackMode() === "end" ? "End-of-campaign report" : "Campaign update"} · ${new Date().toLocaleDateString("en-GB")}</div><div style="font-size:24px;font-weight:600;margin-top:4px">${esc(title)}</div></div>
       <div style="padding:20px 28px"><div class="card" style="border-left:4px solid #FF6B7C"><div class="fbview" style="background:#fff;padding:0">${mdToHtml(state.feedback)}</div></div><div id="pdfCards"></div></div>`;
+    wrap.className = "pdfw";
     document.body.appendChild(wrap);
     document.querySelectorAll("#main > .card:not(#fbCard)").forEach(c => {
       if (c.classList.contains("empty")) return;
@@ -824,16 +826,33 @@ async function exportPdf() {
       k.querySelectorAll("details").forEach(d => d.open = true);
       wrap.querySelector("#pdfCards").appendChild(k);
     });
-    const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: "#EBE6E4", useCORS: true });
+    // Safe page breaks: bottoms of paragraphs, bullets, table rows, cards, charts… (CSS px from the top of the page).
+    // Pages are cut on the last safe break that fits, so no line, row or chart is split in two.
+    const top0 = wrap.getBoundingClientRect().top;
+    const breaks = [...new Set([...wrap.querySelectorAll("p, li, tr, .card, .crm-head, svg, .legend, .src, table, h2, summary, .summary, .kpi")]
+      .map(e => Math.round(e.getBoundingClientRect().bottom - top0)))].sort((a, b) => a - b);
+    // card bottoms are preferred breaks: a campaign card that fits on a page isn't split
+    const cardBreaks = [...wrap.querySelectorAll(".card")].map(e => Math.round(e.getBoundingClientRect().bottom - top0));
+    const cssH = wrap.scrollHeight;
+    // browsers cap a canvas around 32 000 px high: lower the resolution for very long reports instead of losing the end
+    const scale = Math.min(2, 30000 / cssH);
+    const canvas = await html2canvas(wrap, { scale, backgroundColor: "#EBE6E4", useCORS: true, windowWidth: 900 });
     wrap.remove();
     const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit: "pt", format: "a4" });
-    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
-    const pxPerPt = canvas.width / pw, pagePx = Math.floor(ph * pxPerPt);
-    for (let y = 0, i = 0; y < canvas.height; y += pagePx, i++) {
-      const slice = document.createElement("canvas"); slice.width = canvas.width; slice.height = Math.min(pagePx, canvas.height - y);
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), M = 18; // top/bottom margin on pages 2+
+    const pxPerPt = canvas.width / pw, k = canvas.height / cssH; // canvas px per CSS px
+    const cuts = breaks.map(b => Math.round(b * k)), cardCuts = cardBreaks.map(b => Math.round(b * k)).sort((a, b) => a - b);
+    for (let y = 0, i = 0; y < canvas.height - 2; i++) {
+      const avail = Math.floor((ph - (i ? 2 * M : M)) * pxPerPt);
+      let end = y + avail;
+      if (end >= canvas.height) end = canvas.height;
+      else { const c = cardCuts.filter(b => b > y + avail * 0.6 && b <= end).pop() || cuts.filter(b => b > y + avail * 0.4 && b <= end).pop(); if (c) end = Math.min(canvas.height, c + Math.round(8 * k)); }
+      const slice = document.createElement("canvas"); slice.width = canvas.width; slice.height = end - y;
       slice.getContext("2d").drawImage(canvas, 0, y, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
       if (i) pdf.addPage();
-      pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pw, slice.height / pxPerPt);
+      pdf.setFillColor(235, 230, 228); pdf.rect(0, 0, pw, ph, "F");
+      pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", 0, i ? M : 0, pw, slice.height / pxPerPt);
+      y = end;
     }
     const name = `${title.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "report"}_${isoDaysAgo(0)}.pdf`;
     await dl.save({ filename: name, data: pdf.output("blob") });
