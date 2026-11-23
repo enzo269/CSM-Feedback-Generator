@@ -10,7 +10,7 @@ Owner: Enzo (Operations Market Lead BNL). Live artifact: https://claude.ai/artif
 
 | Tab | What it does |
 |---|---|
-| **Feedback** | CRM IDs (chips) · *Browse live campaigns* (all live BE+NL campaigns, filter by ops / CSM / "to watch") · feedback type (Auto / Mid-flight update / End-of-campaign report) · focus period (default whole flight) · extra KPI files (PNG, JPG, Excel, CSV) · free context · per-campaign cards (status + reason, KPI vs target, daily chart vs daily goal, projection & budget at risk, since-last-update deltas, flight insights) · generated feedback with styles **Factual** (default) / **Short** / **Detailed**, Edit/Preview, select-a-passage comment bubble (Fix + "Remember"), Learn from my edits, Regenerate, Copy, **Export PDF**, **Post as Jira comment** (with @mention of the CSM) · History (5 latest, "show all"; a saved feedback reopens editable, copyable, exportable and postable) |
+| **Feedback** | CRM IDs (chips) · *Browse live campaigns* (all live BE+NL campaigns, filter by ops / CSM / "to watch") · feedback type (Auto / Mid-flight update / End-of-campaign report) · focus period (default whole flight) · extra KPI files (PNG, JPG, Excel, CSV — for tables: pick the columns, the calculation (sum / average / min / max / last), ratios (sum ÷ sum), an optional split column and a "how to read it" note; the page computes the figures exactly and sends only those; saved per report type as **file templates**, applied automatically to files with the same columns) · **BNL benchmark** per format on each card · free context · per-campaign cards (status + reason, KPI vs target, daily chart vs daily goal, projection & budget at risk, since-last-update deltas, flight insights) · generated feedback with styles **Factual** (default) / **Short** / **Detailed**, Edit/Preview, select-a-passage comment bubble (Fix + "Remember"), Learn from my edits, Regenerate, Copy, **Export PDF**, **Post as Jira comment** (with @mention of the CSM) · History (5 latest, "show all"; a saved feedback reopens editable, copyable, exportable and postable) |
 | **Monday drafts** | Selection of CRM IDs to draft every Monday (add / remove) · list of drafts (flagged first, ops filter, delete one / posted / all) · click a draft → opens it in Feedback with refreshed figures |
 | **My preferences** | Style rules applied to every feedback (toggle, edit by double-click, delete, add) · approved examples (feedbacks posted to Jira; the 3 latest are used as style models; deletable) |
 
@@ -46,6 +46,7 @@ Jira cloudId: `f27c696c-ab8c-4c73-896e-079ad4bb1763` (seedtag.atlassian.net).
 - `buying_engine_deliveries_utc` — **strategies** (`strategy_name`) with impressions, clicks, viewable/measured, video starts/completions. Max **14 days per query** → the tool queries the flight in 14-day chunks (max 8).
 - Delivery history window: **365 days** (`HISTORY_DAYS`), CRM IDs queried in batches of 10 (`CRM_BATCH`) to stay under the 5 000-row limit. For a flight that started earlier, cumulative totals and pacing still cover the whole flight; the daily chart and weekly insights start 365 days ago (flagged on the campaign card and in the prompt).
 - Dates ("today", "yesterday") are computed in **Europe/Madrid**.
+- **BNL benchmark**: one query per session on `direct_product_line_delivery_tz` grouped by `product`, BE+NL, last **90 days** (`BENCH_DAYS`), impression-weighted `ctr` / `vtr` / `vw`; formats under 300 000 impressions are ignored (`BENCH_MIN_IMPS`). Sent as `bnl_benchmark`; the feedback compares the main KPI to it in one clause when the gap is meaningful.
 
 ### 2.2 Jira
 - **BNL AdOps - Bookings** (`project = BNL`): summary starts with the CRM ID (`293425 | …`).
@@ -90,6 +91,7 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 | `style/rules` | `{ rules: [{ text, on, ts }] }` — My preferences |
 | `drafts/<batch>_<crm>` | Monday drafts: `ts`, `batch`, `crms`, `csm`, `ops`, `label`, `flag`, `status` (new/posted), `mode`, `text` |
 | `config/watchlist` | `{ crms: [...] }` — campaigns to draft on Mondays |
+| `filetemplates/<slug>` | How to read a type of extra KPI file: `name`, `sheetName`, `cols` (`{column: sum/avg/min/max/last}`), `ratios` (`[{name, num, den, pct}]`), `split`, `note` |
 
 ---
 
@@ -133,6 +135,10 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - Fix: strategies were never read — the UTC cube `buying_engine_deliveries_utc` appends a "Timezone: …" note after its JSON, which broke parsing; the note is now ignored.
 - Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
+
+**2026-11-23**
+- Extra KPI files (Excel/CSV): column picker with exact calculations done by the page (no more 25 000-character truncation when columns are picked), ratios, split by column, "how to read it" note, file templates saved in the DB and applied automatically. Semicolon CSVs and European number formats are read correctly. Without a picked column, the raw file is still sent (truncation now flagged).
+- BNL benchmark per format (last 90 days) on the campaign card and in the prompt.
 
 **v1** — first version.
 

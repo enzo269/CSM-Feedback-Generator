@@ -31,6 +31,20 @@ label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
 .file .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .file select{width:auto;padding:2px 4px;font-size:11px}
 .file button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
+.file .cfg{color:#000;font-weight:500;font-size:11px;border:1px solid var(--g2);border-radius:8px;padding:2px 6px}
+.fcfg{background:var(--cream);border-radius:10px;padding:10px;margin:6px 0 10px;font-size:12px}
+.fcfg label{font-size:11px;margin:8px 0 3px;display:block;color:var(--g4)}
+.fcfg select,.fcfg input[type=text],.fcfg textarea{padding:5px 6px;font-size:12px;border-radius:8px}
+.fcfg .cols{max-height:220px;overflow:auto;background:#fff;border-radius:8px;border:1px solid var(--g1)}
+.fcfg .col{display:flex;align-items:center;gap:6px;padding:4px 6px;border-bottom:1px solid var(--g1)}
+.fcfg .col span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcfg .col i{color:var(--g3);font-style:normal;font-size:11px}
+.fcfg .col select{width:auto}
+.fcfg .rt{display:flex;gap:4px;align-items:center;margin-top:4px}
+.fcfg .rt select,.fcfg .rt input[type=text]{flex:1;min-width:0}
+.fcfg .mini{border:1px solid var(--g2);background:#fff;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;color:#000}
+.fcfg table{font-size:11px;background:#fff;margin-top:4px}
+.fcfg .row2{display:flex;gap:6px;align-items:center}
 select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid var(--g1);border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
 input,select,textarea{color:#000;-webkit-text-fill-color:#000}
 ::placeholder{color:var(--g3);-webkit-text-fill-color:var(--g3);opacity:1}
@@ -193,6 +207,9 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
     <div class="muted" style="margin:-6px 0 8px">Applied to every feedback, all types and tones. Double-click a rule to edit it, untick to pause it.</div>
     <div id="rules"><div class="muted">No rules yet. Edit a feedback, then use “Learn from my edits”, or tick “Remember” in a comment bubble.</div></div>
     <div class="addrule"><input type="text" id="newRule" placeholder="Add a rule manually…"><button id="addRule">+</button></div>
+    <h2 style="margin-top:22px">File templates</h2>
+    <div class="muted" style="margin:-6px 0 8px">How to read each type of extra KPI file (columns, calculation, note). Applied automatically when a file with the same columns is attached.</div>
+    <div id="tplList"><div class="muted">No templates yet. Attach an Excel/CSV, click “Columns”, then “Save as template”.</div></div>
   </div>
   <div class="card">
     <h2>Approved examples</h2>
@@ -210,7 +227,7 @@ const SHEETS_SRV = "Google Sheets";
 const ADX_SRV = "adx-data-toolbox";
 const AUTHOR = "Enzo"; // the ops lead the feedback is written as (no signature is added: Jira shows the author)
 const P = "direct_product_line_delivery_tz.";
-const state = { crms: [], files: [], results: null, feedback: "", tone: (() => { try { return localStorage.getItem("csm_tone_v2") || "Factual"; } catch { return "Factual"; } })(), histId: null, editing: false, generated: "", rules: [], examples: [] };
+const state = { crms: [], files: [], results: null, feedback: "", tone: (() => { try { return localStorage.getItem("csm_tone_v2") || "Factual"; } catch { return "Factual"; } })(), histId: null, editing: false, generated: "", rules: [], examples: [], templates: [] };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US").replace(/,/g, " ");
@@ -221,6 +238,10 @@ const dmy = s => { const d = day(s); return d ? d.slice(8,10) + "/" + d.slice(5,
 const isoDaysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }); };
 // Delivery history window read from the cubes. One row per CRM per day, so CRM IDs are queried in batches to stay under the row limit.
 const HISTORY_DAYS = 365, CRM_BATCH = 10;
+// BNL benchmark: average KPIs of all BNL direct campaigns of the same format over this many days (min. volume to be meaningful)
+const BENCH_DAYS = 90, BENCH_MIN_IMPS = 300000;
+// Raw table text sent to Claude when no column is picked
+const RAW_MAX = 25000;
 const batches = ids => { const out = []; for (let i = 0; i < ids.length; i += CRM_BATCH) out.push(ids.slice(i, i + CRM_BATCH)); return out; };
 
 /* ---------- capabilities ---------- */
@@ -293,32 +314,172 @@ $("#fileIn").onchange = e => { handleFiles(e.target.files); e.target.value = "";
 async function handleFiles(list) {
   for (const f of list) {
     const ext = f.name.split(".").pop().toLowerCase();
-    const entry = { name: f.name, target: "all", kind: "", text: "", blob: null };
+    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "", open: false };
     try {
       if (["png", "jpg", "jpeg", "webp"].includes(ext)) { entry.kind = "image"; entry.blob = f; }
-      else if (ext === "csv") { entry.kind = "table"; entry.text = (await f.text()).slice(0, 25000); }
-      else if (["xlsx", "xls"].includes(ext)) {
+      else if (["csv", "xlsx", "xls"].includes(ext)) {
         if (!window.XLSX) throw new Error("Excel reader failed to load");
-        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        const wb = ext === "csv" ? XLSX.read(await f.text(), { type: "string", raw: true }) : XLSX.read(await f.arrayBuffer(), { type: "array" });
         entry.kind = "table";
-        entry.text = wb.SheetNames.map(n => `## Sheet: ${n}\n` + XLSX.utils.sheet_to_csv(wb.Sheets[n])).join("\n\n").slice(0, 25000);
+        entry.sheets = wb.SheetNames.map(n => ({ name: n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" }) })).filter(x => x.rows.length);
+        if (!entry.sheets.length) throw new Error("the file is empty");
+        entry.sheet = Math.max(0, entry.sheets.findIndex(x => tableOf(entry, x).header.length >= 2));
+        const t = matchTemplate(entry); if (t) applyTemplate(entry, t);
       } else continue;
       state.files.push(entry);
     } catch (e) { note(`Could not read ${f.name}: ${e.message}`, "err"); }
   }
   renderFiles();
 }
+
+/* ---------- extra KPI files: columns, calculation, templates ---------- */
+// "1 234,5" / "1,234.5" / "0.82%" / "€12" → number (NaN when it is not a number)
+function parseNum(v) {
+  if (typeof v === "number") return v;
+  let t = String(v ?? "").replace(/[\s €$£%]/g, "");
+  if (!t || !/^[-+]?[\d.,]+$/.test(t)) return NaN;
+  const c = t.lastIndexOf(","), d = t.lastIndexOf(".");
+  if (c > -1 && d > -1) t = c > d ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  else if (c > -1) t = /^[-+]?\d{1,3}(,\d{3})+$/.test(t) ? t.replace(/,/g, "") : t.replace(",", ".");
+  else if ((t.match(/\./g) || []).length > 1) t = t.replace(/\./g, "");
+  return +t;
+}
+// header = first row (among the first 15) with 2+ filled cells that are mostly text; data = the non-empty rows below it
+function tableOf(f, sh = f.sheets[f.sheet]) {
+  const rows = sh?.rows || [];
+  let h = rows.slice(0, 15).findIndex(r => { const v = r.filter(x => String(x).trim() !== ""); return v.length >= 2 && v.filter(x => isNaN(parseNum(x))).length >= v.length * 0.6; });
+  if (h < 0) h = 0;
+  const seen = {}, header = (rows[h] || []).map((x, i) => { let n = String(x).trim() || "Column " + (i + 1); if (seen[n]) n += " (" + (++seen[n]) + ")"; else seen[n] = 1; return n; });
+  const data = rows.slice(h + 1).filter(r => r.some(x => String(x).trim() !== ""));
+  const numeric = header.map((_, i) => { const v = data.map(r => r[i]).filter(x => String(x ?? "").trim() !== ""); return v.length > 0 && v.filter(x => !isNaN(parseNum(x))).length >= v.length * 0.6; });
+  return { header, data, numeric, sheetName: sh?.name };
+}
+const AGGS = { "": "—", sum: "Sum", avg: "Average", min: "Min", max: "Max", last: "Last value" };
+function aggOf(vals, how) {
+  const v = vals.map(parseNum).filter(x => !isNaN(x)); if (!v.length) return null;
+  const r = how === "sum" ? v.reduce((a, b) => a + b, 0) : how === "avg" ? v.reduce((a, b) => a + b, 0) / v.length : how === "min" ? Math.min(...v) : how === "max" ? Math.max(...v) : v.at(-1);
+  return +r.toFixed(4);
+}
+// exact figures computed in the page: per column (chosen aggregation) and per ratio (sum ÷ sum), for the total and per group of the "split by" column
+function computeFile(f) {
+  const T = tableOf(f), ix = n => T.header.indexOf(n);
+  const cols = Object.entries(f.cols).filter(([n, a]) => a && ix(n) > -1);
+  const ratios = f.ratios.filter(r => r.name && ix(r.num) > -1 && ix(r.den) > -1);
+  if (!cols.length && !ratios.length) return null;
+  const metrics = rows => {
+    const o = {};
+    cols.forEach(([n, a]) => o[`${n} (${AGGS[a].toLowerCase()})`] = aggOf(rows.map(r => r[ix(n)]), a));
+    ratios.forEach(r => { const num = aggOf(rows.map(x => x[ix(r.num)]), "sum"), den = aggOf(rows.map(x => x[ix(r.den)]), "sum");
+      o[r.name + (r.pct ? " (%)" : "")] = num != null && den ? +((num / den) * (r.pct ? 100 : 1)).toFixed(r.pct ? 2 : 4) : null; });
+    return o;
+  };
+  const out = { sheet: T.sheetName, rows_used: T.data.length, total: metrics(T.data) };
+  const si = ix(f.split);
+  if (si > -1) {
+    const g = {}; T.data.forEach(r => { const k = String(r[si] ?? "").trim() || "(blank)"; (g[k] ||= []).push(r); });
+    const keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
+    out.split_by = f.split; out.groups = keys.slice(0, 25).map(k => ({ [f.split]: k, rows: g[k].length, ...metrics(g[k]) }));
+    if (keys.length > 25) out.groups_note = `${keys.length - 25} smaller groups left out`;
+  }
+  return out;
+}
+function rawText(f) {
+  const t = f.sheets.map(x => `## Sheet: ${x.name}\n` + x.rows.map(r => r.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(",")).join("\n")).join("\n\n");
+  return t.length > RAW_MAX ? t.slice(0, RAW_MAX) + `\n[file truncated: only the first ${RAW_MAX} characters are shown]` : t;
+}
+function tplData(f) { const T = tableOf(f); return { name: f.tpl.trim(), sheetName: T.sheetName, cols: Object.fromEntries(Object.entries(f.cols).filter(([, a]) => a)), split: f.split, ratios: f.ratios.filter(r => r.name && r.num && r.den), note: f.note, ts: Date.now() }; }
+const tplNeeds = t => [...Object.keys(t.cols || {}), ...(t.ratios || []).flatMap(r => [r.num, r.den]), ...(t.split ? [t.split] : [])];
+// best saved template whose columns all exist in one of the file's sheets
+function matchTemplate(f) {
+  let best = null;
+  state.templates.forEach(t => {
+    const need = [...new Set(tplNeeds(t))]; if (!need.length) return;
+    f.sheets.forEach((sh, i) => { const H = tableOf(f, sh).header; if (need.every(n => H.includes(n)) && (!best || need.length > best.n)) best = { t, i, n: need.length }; });
+  });
+  return best && { ...best.t, _sheet: best.i };
+}
+function applyTemplate(f, t) {
+  if (t._sheet != null) f.sheet = t._sheet; else { const i = f.sheets.findIndex(x => x.name === t.sheetName); if (i > -1) f.sheet = i; }
+  f.cols = { ...(t.cols || {}) }; f.split = t.split || ""; f.ratios = (t.ratios || []).map(r => ({ ...r })); f.note = t.note || ""; f.tpl = t.name;
+}
+let tplCol = null;
+const tplId = n => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "template";
+async function saveTemplate(f) {
+  if (!f.tpl.trim()) { note("Give the report type a name first (e.g. IAS, Brand lift).", "err"); return; }
+  const d = tplData(f); if (!tplNeeds(d).length) { note("Pick at least one column or ratio before saving the template.", "err"); return; }
+  if (!tplCol) { note("Templates can't be saved in this view.", "err"); return; }
+  try { await tplCol.doc(tplId(d.name)).set(d); note(`Template “${d.name}” saved — it will be applied to files with the same columns.`, "ok"); }
+  catch (e) { note("Could not save the template: " + (e?.message || e), "err"); }
+}
+function renderTemplates() {
+  const box = $("#tplList"); if (!box) return;
+  if (!state.templates.length) { box.innerHTML = `<div class="muted">No templates yet. Attach an Excel/CSV, click “Columns”, then “Save as template”.</div>`; return; }
+  box.innerHTML = "";
+  state.templates.forEach(t => {
+    const d = document.createElement("div"); d.className = "rl";
+    const l = document.createElement("span"); l.style.flex = "1";
+    const parts = [...Object.entries(t.cols || {}).map(([n, a]) => `${n} → ${AGGS[a].toLowerCase()}`), ...(t.ratios || []).map(r => `${r.name} = ${r.num} ÷ ${r.den}${r.pct ? " × 100" : ""}`)];
+    l.innerHTML = `<b>${esc(t.name)}</b> · ${esc(parts.join(" · "))}${t.split ? ` · split by ${esc(t.split)}` : ""}${t.note ? `<br><span class="muted">${esc(t.note)}</span>` : ""}`;
+    const del = document.createElement("button"); del.textContent = "×"; del.title = "Delete this template"; del.style.cssText = "border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700";
+    del.onclick = async () => { try { await tplCol.doc(tplId(t.name)).delete(); } catch (e) { note("Could not delete: " + (e?.message || e), "err"); } };
+    d.append(l, del); box.appendChild(d);
+  });
+}
+function cfgPanel(f) {
+  const T = tableOf(f), num = T.header.filter((_, i) => T.numeric[i]), txt = T.header.filter((_, i) => !T.numeric[i]);
+  const opt = (list, v, blank) => (blank != null ? `<option value="">${blank}</option>` : "") + list.map(n => `<option ${n === v ? "selected" : ""}>${esc(n)}</option>`).join("");
+  const sample = i => { const v = T.data.find(r => String(r[i] ?? "").trim() !== ""); return v ? String(v[i]).slice(0, 14) : ""; };
+  const res = computeFile(f);
+  const prev = res ? (() => { const rows = [{ "": "Total", ...res.total }, ...(res.groups || []).slice(0, 6).map(g => { const { rows: _, ...m } = g; const k = m[res.split_by]; delete m[res.split_by]; return { "": k, ...m }; })];
+    const ks = Object.keys(rows[0]);
+    return `<label>What Claude will get (computed from ${res.rows_used} rows${res.groups ? `, ${res.groups.length} groups` : ""})</label><div style="overflow:auto"><table><tr>${ks.map(k => `<th>${esc(k)}</th>`).join("")}</tr>${rows.map(r => `<tr>${ks.map(k => `<td>${esc(r[k] == null ? "—" : typeof r[k] === "number" ? +r[k].toFixed(2) : r[k])}</td>`).join("")}</tr>`).join("")}</table></div>`; })()
+    : `<div class="muted" style="margin-top:8px">No column picked: Claude gets the raw file${rawText(f).includes("[file truncated") ? ` — <b>too big, it will be cut at ${RAW_MAX} characters</b>` : ""}.</div>`;
+  return `<div class="fcfg">
+    <div class="row2"><input type="text" class="f-tpl" list="tplNames" placeholder="Report type (e.g. IAS, Brand lift)" value="${esc(f.tpl)}"><button class="mini f-save">Save as template</button></div>
+    <datalist id="tplNames">${state.templates.map(t => `<option value="${esc(t.name)}">`).join("")}</datalist>
+    ${f.sheets.length > 1 ? `<label>Sheet</label><select class="f-sheet">${f.sheets.map((x, i) => `<option value="${i}" ${i === f.sheet ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>` : ""}
+    <label>Columns to use · ${T.data.length} rows</label>
+    <div class="cols">${num.length ? num.map(n => `<div class="col"><span title="${esc(n)}">${esc(n)}</span><i>${esc(sample(T.header.indexOf(n)))}</i><select class="f-agg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<option value="${k}" ${f.cols[n] === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>`).join("") : `<div class="col muted">No numeric column found in this sheet.</div>`}</div>
+    <label>Ratios (sum ÷ sum, e.g. CTR = clicks ÷ impressions)</label>
+    ${f.ratios.map((r, i) => `<div class="rt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "numerator")}</select>÷<select class="f-rden">${opt(num, r.den, "denominator")}</select><label style="margin:0;display:flex;gap:2px;align-items:center" title="Multiply by 100 (percentage)"><input type="checkbox" class="f-rpct" ${r.pct ? "checked" : ""}>%</label><button class="f-rdel" title="Remove">×</button></div>`).join("")}
+    <button class="mini f-radd" style="margin-top:4px">+ Add a ratio</button>
+    <label>Split by (optional — one line per value, e.g. placement or date)</label><select class="f-split">${opt(txt, f.split, "No split (total only)")}</select>
+    <label>How to read it (sent to Claude with the figures)</label><textarea class="f-note" rows="2" placeholder="e.g. Brand lift = uplift vs control group; only quote significant results">${esc(f.note)}</textarea>
+    ${prev}
+  </div>`;
+}
 function renderFiles() {
   const box = $("#files"); box.innerHTML = "";
   state.files.forEach((f, i) => {
     const d = document.createElement("div"); d.className = "file";
-    const n = document.createElement("span"); n.className = "n"; n.textContent = (f.kind === "image" ? "🖼 " : "📊 ") + f.name;
+    const n = document.createElement("span"); n.className = "n"; n.textContent = (f.kind === "image" ? "🖼 " : "📊 ") + f.name; n.title = f.name;
     const s = document.createElement("select");
     ["all", ...state.crms].forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v === "all" ? "→ all" : "→ " + v; s.appendChild(o); });
     if (f.target !== "all" && !state.crms.includes(f.target)) f.target = "all";
     s.value = f.target; s.onchange = () => f.target = s.value;
-    const b = document.createElement("button"); b.textContent = "×"; b.onclick = () => { state.files.splice(i, 1); renderFiles(); };
-    d.append(n, s, b); box.appendChild(d);
+    const b = document.createElement("button"); b.textContent = "×"; b.title = "Remove"; b.onclick = () => { state.files.splice(i, 1); renderFiles(); };
+    if (f.kind === "table") {
+      const c = document.createElement("button"); c.className = "cfg"; const res = computeFile(f);
+      c.textContent = (f.open ? "▾ " : "▸ ") + (f.tpl ? f.tpl : res ? "Columns ✓" : "Columns");
+      c.title = "Pick the columns and the calculation"; c.onclick = () => { f.open = !f.open; renderFiles(); };
+      d.append(n, c, s, b);
+    } else d.append(n, s, b);
+    box.appendChild(d);
+    if (f.kind === "table" && f.open) {
+      const w = document.createElement("div"); w.innerHTML = cfgPanel(f); const p = w.firstElementChild; box.appendChild(p);
+      const re = () => renderFiles(), q = sel => p.querySelector(sel);
+      q(".f-tpl").onchange = e => { f.tpl = e.target.value; const t = state.templates.find(x => x.name === f.tpl); if (t) applyTemplate(f, t); re(); };
+      q(".f-save").onclick = () => { f.tpl = q(".f-tpl").value; f.note = q(".f-note").value; saveTemplate(f); };
+      q(".f-sheet") && (q(".f-sheet").onchange = e => { f.sheet = +e.target.value; re(); });
+      p.querySelectorAll(".f-agg").forEach(x => x.onchange = () => { f.cols[x.dataset.c] = x.value; re(); });
+      p.querySelectorAll(".rt").forEach(row => { const r = f.ratios[+row.dataset.i], g = sel => row.querySelector(sel);
+        g(".f-rn").onchange = e => { r.name = e.target.value; re(); }; g(".f-rnum").onchange = e => { r.num = e.target.value; re(); };
+        g(".f-rden").onchange = e => { r.den = e.target.value; re(); }; g(".f-rpct").onchange = e => { r.pct = e.target.checked; re(); };
+        g(".f-rdel").onclick = () => { f.ratios.splice(+row.dataset.i, 1); re(); }; });
+      q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true }); re(); };
+      q(".f-split").onchange = e => { f.split = e.target.value; re(); };
+      q(".f-note").oninput = e => { f.note = e.target.value; };
+    }
   });
 }
 
@@ -344,6 +505,23 @@ async function fetchCube(ids) {
   }));
   const strip = r => { const o = {}; for (const k in r) o[k.replace("direct_product_line_delivery_tz__", "")] = r[k]; return o; };
   return res.flat().map(strip);
+}
+// BNL benchmark per format: impression-weighted CTR / VTR / viewability of all BNL direct campaigns over the last BENCH_DAYS days (one query, cached for the session)
+let benchP = null;
+function fetchBench() {
+  benchP ??= call(CUBE_SRV, "run_query", { query: {
+    dimensions: [P + "product"], measures: ["impressions", "ctr", "vtr", "vw"].map(m => P + m),
+    timeDimensions: [{ dimension: P + "dt", dateRange: [isoDaysAgo(BENCH_DAYS), isoDaysAgo(1)] }],
+    filters: [{ member: P + "country_sold", operator: "equals", values: ["Belgium", "Netherlands"] }], limit: 200 } })
+    .then(rows => {
+      if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
+      const o = {}, g = (x, k) => x["direct_product_line_delivery_tz__" + k];
+      (rows || []).forEach(x => { const n = +g(x, "impressions") || 0; if (g(x, "product") && n >= BENCH_MIN_IMPS)
+        o[g(x, "product")] = { impressions: n, ctr_pct: g(x, "ctr") == null ? null : +(+g(x, "ctr")).toFixed(2), vtr_pct: g(x, "vtr") == null ? null : +(+g(x, "vtr")).toFixed(1), viewability_pct: g(x, "vw") ? +(+g(x, "vw")).toFixed(1) : null }; });
+      return o;
+    })
+    .catch(e => { benchP = null; throw e; });
+  return benchP;
 }
 async function fetchJira(ids) {
   const jql = `project in (BNL, PT) AND (${ids.map(i => `summary ~ "\\"${i}\\"" OR cf[11704] ~ "${i}"`).join(" OR ")}) ORDER BY created DESC`;
@@ -747,6 +925,7 @@ function renderResults() {
       ${sinceBlock(r)}
       ${insightsBlock(r)}
       ${chartSVG(r.daily, n)}
+      ${r.bench ? `<div class="src">BNL benchmark · ${esc(r.bench.format)}, last ${BENCH_DAYS} days: CTR <b>${pct(r.bench.ctr_pct, 2)}</b>${r.bench.vtr_pct != null ? ` · VTR <b>${pct(r.bench.vtr_pct, 1)}</b>` : ""}${r.bench.viewability_pct != null ? ` · Viewab. <b>${pct(r.bench.viewability_pct, 1)}</b>` : ""} <span title="Impression-weighted average of all BNL direct campaigns of this format">(all BNL direct)</span></div>` : ""}
       <div class="src">${esc(r.type)} · ${r.ended ? `Final delivery: <b>${pct(r.deliveredPct, 0)}</b>` : `Projected delivery: <b>${pct(proj, 0)}</b>${r.type === "Direct" && r.projRaw > 100 ? " (capped — direct stops at 100%, ahead of schedule)" : ""}`}${r.type === "PMP" && L.gross_revenue_spent_ratio != null ? ` · Budget spent: <b>${pct(L.gross_revenue_spent_ratio, 0)}</b>` : ""} · Budget at risk: <b>${r.ended ? "—" : r.barEur != null ? "€" + fmt(r.barEur) : r.bar != null ? fmt(r.bar) + " " + esc(L.currency || "") : "—"}</b> <span title="Projection based on the average of the last 3 days">(3-day avg)</span>${r.truncated ? ` · <b>Daily data limited to the last ${HISTORY_DAYS} days</b> (flight started ${dmy(L.start_dt)}; totals and pacing still cover the whole flight)` : ""} · Sources: <b>BigQuery</b>${r.jira ? ` · <b>Jira ${esc(r.jira.key)}</b>` : ""}${state.files.filter(f => f.target === "all" || f.target === r.id).map(f => ` · <b>${esc(f.name)}</b>`).join("")}</div>
     </div>`);
   });
@@ -894,6 +1073,7 @@ function buildPrompt() {
       avg_daily_units_last_3_days: Math.round(r.avg3), consecutive_days_below_daily_goal: r.streak,
       kpis: r.kpis.map(k => ({ kpi: k.label, target: k.target, actual: k.actual, unit: k.unit || "%", lower_is_better: k.lowerBetter || undefined })),
       focus_period_avg: { ctr_pct: avg("ctr"), vtr_pct: avg("vtr"), viewability_pct: avg("vw") },
+      bnl_benchmark: r.bench ? { scope: `all BNL direct ${r.bench.format} campaigns, last ${BENCH_DAYS} days, impression-weighted`, ctr_pct: r.bench.ctr_pct, vtr_pct: r.bench.vtr_pct ?? undefined, viewability_pct: r.bench.viewability_pct ?? undefined } : undefined,
       daily: (mode === "end" ? d : d.slice(-10)).map(x => ({ dt: x.dt, units: x.units, goal: x.goal, ctr: x.ctr && +x.ctr.toFixed(2), vtr: x.vtr && +x.vtr.toFixed(1), vw: x.vw && +x.vw.toFixed(1) })),
       jira_brief: r.jira?.brief?.slice(0, 800),
       previous_update: prevSnapshot(r.id) || undefined,
@@ -910,7 +1090,12 @@ function buildPrompt() {
       } : undefined
     };
   });
-  const tables = state.files.filter(f => f.kind === "table").map(f => `### File "${f.name}" (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})\n${f.text}`).join("\n\n");
+  const tables = state.files.filter(f => f.kind === "table").map(f => {
+    const res = computeFile(f), head = `### File "${f.name}"${f.tpl ? ` · report type: ${f.tpl}` : ""} (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})`;
+    const how = f.note.trim() ? `\nHow to read it (from ${AUTHOR}): ${f.note.trim()}` : "";
+    return res ? `${head}${how}\nFigures computed exactly by the page from ${res.rows_used} rows of sheet "${res.sheet}" — use them as they are, don't recompute:\n${JSON.stringify(res, null, 1)}`
+      : `${head}${how}\n${rawText(f)}`;
+  }).join("\n\n");
   const imgs = state.files.filter(f => f.kind === "image").map((f, i) => `Image ${i + 1}: "${f.name}" (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})`).join("\n");
   const toneTxt = {
     "Short": `SHORT — the CSM reads it in 15 seconds. Per campaign: ONE or TWO sentences giving the verdict and the single most important reason, with at most 2 figures. No bullets. Whole message under ${mode === "end" ? 160 : 90} words + ${mode === "end" ? 50 : 30} words per extra campaign. The mandatory Strategies bullets are the only exception to these limits.`,
@@ -945,6 +1130,7 @@ ${mode === "update" ? `TYPE: MID-FLIGHT UPDATE — concise and factual.
   3. More budget next time: ONLY if delivery went fine (fully delivered, no pacing issues) — say the campaign had room to scale.
   NEVER recommend changing or adding creatives. No other generic advice.`}
 - STRATEGIES (mandatory): if "buying_engine_strategies" is present (campaign served on Buying Engine), ALWAYS give the strategy data in the campaign's section, whatever the type, tone or preferences — the preferences about leaving out metrics do not apply to it. Write a line "**Strategies:**" followed by one "- " bullet per strategy, biggest first: "- **<strategy name>**: <share_pct>% of impressions · <KPI metric> <value>" where the KPI metric is "strategy_kpi_metric" (fall back to CTR for display, VTR for video). Then one short sentence saying which strategy carries the volume and which performs best on the KPI. Use the strategy names exactly as given.${mode === "end" ? ' In the end report, also add a 4th bullet "- **Strategies:** …" in Where it performed.' : ""}
+- BENCHMARK: if "bnl_benchmark" is present, compare the campaign's main KPI to it in ONE short clause where it adds meaning (e.g. "VTR is **81.7%**, above the 72% we usually see on BNL video"). Say "what we usually see on <format> in BNL", never "benchmark data". Only for the KPI that matters; skip it when the gap is tiny (under ~5% relative) or when the campaign has no such metric.
 - If "previous_update" is present, mention how key figures moved since that update (e.g. "CTR up from 0.58% to **0.62%** since last week"), briefly.
 - PERFORMANCE campaigns ("performance_internal_report" present): use those figures as the main source — impressions, clicks, client spend vs budget (spent %), CPC/CPM, and the KPI (visits or qualified visits) with CPV when there are visits. "pacing_index" is spend pacing vs plan (negative = behind). Never mention media cost or margin.
 ${mode === "end" ? `- Include a section **Where it performed** written as exactly 3 short bullets — "- **Contexts:** …", "- **Publishers:** …", "- **Devices:** …". Each bullet: one sentence, max 3 figures, saying who led on volume and who stood out (best/worst) on the chosen metric. Use readable names exactly as given (e.g. "Food & drink", not "food-and-drink"). No lists of every value. Content: top contexts and publishers by volume, and those with the best CTR/VTR (only if they had meaningful volume, e.g. ≥ 2% share), plus the device split — from "targeting_insights" — use ONLY the metrics listed in its "metrics" field (the ops lead chose them). Name them plainly (e.g. "automotive and personal finance pages", "schadeautos.nl").
@@ -1130,7 +1316,8 @@ ${state.feedback}`;
 /* ---------- training (db) ---------- */
 let rulesDoc = null, exCol = null;
 function initTraining(db) {
-  rulesDoc = db.doc("style/rules"); exCol = db.collection("examples");
+  rulesDoc = db.doc("style/rules"); exCol = db.collection("examples"); tplCol = db.collection("filetemplates");
+  tplCol.onSnapshot(s => { state.templates = (s.docs ? s.docs.map(d => d.data ? d.data() : d) : (Array.isArray(s) ? s : [])).sort((a, b) => String(a.name).localeCompare(b.name)); renderTemplates(); }, e => console.warn(e));
   rulesDoc.onSnapshot(s => { const d = s?.data ? s.data() : s; state.rules = d?.rules || []; renderRules(); }, e => console.warn(e));
   exCol.orderBy("ts", "desc").limit(20).onSnapshot(s => {
     state.examples = s.docs ? s.docs.map(d => ({ id: d.id, ...(d.data ? d.data() : d) })) : (Array.isArray(s) ? s : []);
@@ -1464,12 +1651,13 @@ async function run(opts = {}) {
     const tgt = state.results.filter(x => !x.missing && x.type !== "Performance" && (x.ended || wantEnd));
     const se = state.results.filter(x => !x.missing && x.type !== "Performance");
     if (tgt.length || se.length) {
-      btn.innerHTML = `<span class="spin"></span>Reading ${tgt.length ? "targeting insights & " : ""}strategies…`;
+      btn.innerHTML = `<span class="spin"></span>Reading ${tgt.length ? "targeting insights, " : ""}strategies & benchmarks…`;
       // targeting (data lake) and Buying Engine strategies (cube) are independent: fetch them at the same time
       await Promise.all([
         ...tgt.map(async x => { try { x.targeting = await fetchTargeting(x);
           if (x.targeting) { x.tgtMetrics = x.targeting.isVideo ? ["viewability", "vcr"] : ["ctr", "viewability"]; x.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); } } catch (e) { warn(`Targeting insights ${x.id}: ${e.message}`); } }),
-        ...se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } })
+        ...se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } }),
+        fetchBench().then(B => se.forEach(x => { const b = B[x.last.product]; if (b) x.bench = { format: x.last.product, ...b }; })).catch(e => console.warn("benchmark", e))
       ]);
     }
     renderResults();
