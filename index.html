@@ -149,6 +149,30 @@ tr:nth-child(even) td{background:var(--cream)}
 .empty em{font-family:'Instrument Serif',serif;font-size:28px;color:var(--black);display:block;margin-bottom:8px}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid #000;border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite;vertical-align:-2px;margin-right:6px}
 .btn.dark .spin{border-color:#fff;border-top-color:transparent}
+/* dynamic buttons: lift on hover, press on click, clear focus ring, smooth state changes */
+.btn,.mini,.file .cfg,nav.tabs a,.tone span,.seg button,.x,.chip button,button.tgx{transition:transform .15s ease,box-shadow .15s ease,background-color .15s ease,color .15s ease,border-color .15s ease}
+.btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.14)}
+.btn:not(:disabled):active{transform:translateY(0) scale(.97);box-shadow:0 1px 3px rgba(0,0,0,.18);transition-duration:.05s}
+.btn:not(.sec):not(.dark):not(:disabled):hover{background:#FF8090}
+.btn.sec:not(:disabled):hover{background:#000;color:#fff}
+.btn.dark:not(:disabled):hover{background:var(--g5)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.busy,.btn:disabled:has(.spin){opacity:1;cursor:progress;background-image:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);background-size:200% 100%;animation:shine 1.4s linear infinite}
+@keyframes shine{from{background-position:150% 0}to{background-position:-50% 0}}
+.btn.done{animation:popok .35s ease}
+@keyframes popok{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+.mini:hover,.file .cfg:hover{border-color:#000;transform:translateY(-1px)}
+.mini:active,.file .cfg:active{transform:scale(.96)}
+.mini.sug:hover{background:#FFF0F2;border-color:var(--coral)}
+nav.tabs a:not(.on):hover{background:rgba(0,0,0,.08);border-color:#000}
+nav.tabs a:active{transform:scale(.96)}
+.tone span:not(.on):hover{border-color:#000;background:#fff}
+.tone span:active{transform:scale(.95)}
+.seg button:not(.on):hover{background:var(--cream)}
+.seg button:active{transform:scale(.94)}
+.x:hover,.chip button:hover,button.tgx:hover{transform:scale(1.25)}
+.btn:focus-visible,.mini:focus-visible,nav.tabs a:focus-visible,.seg button:focus-visible,.x:focus-visible,.file .cfg:focus-visible{outline:2px solid #000;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.btn,.mini,.file .cfg,nav.tabs a,.tone span,.seg button,.x,.chip button,button.tgx{transition:none}.btn:hover,.btn:active,.mini:hover,.btn.done,.btn.busy{transform:none!important;animation:none}}
 .spin.dk{border-color:var(--coral);border-top-color:transparent}
 @keyframes r{to{transform:rotate(360deg)}}
 #rules .rl{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:6px 0;border-bottom:1px solid var(--g1)}
@@ -1123,7 +1147,7 @@ function renderFeedbackCard(loading) {
       else await navigator.clipboard.writeText(plain);
       $("#copy").textContent = "Copied ✓";
     } catch { try { await navigator.clipboard.writeText(plain); $("#copy").textContent = "Copied ✓"; } catch { $("#copy").textContent = "Copy blocked"; } }
-    setTimeout(() => $("#copy") && ($("#copy").textContent = "Copy"), 2000);
+    $("#copy").classList.add("done"); setTimeout(() => $("#copy") && ($("#copy").textContent = "Copy", $("#copy").classList.remove("done")), 2000);
   };
   $("#post").onclick = askPost;
 }
