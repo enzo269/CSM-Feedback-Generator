@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-23**
+- Design: team avatars (one embedded image sprite) in the header, on the empty state and as a hopping "Writing the feedback…" loader (static when reduced motion is on).
 - Report KPIs (columns and ratios picked in the setup dialog) now appear in the campaign card's KPI table, marked "· report". Each one has a unit: number, € or % (× 100), saved in the template and sent to Claude with the figure. Fixed a "−NaN pts" gap when a KPI has no target.
 - Writing: sentences no longer open with "One campaign" / "The campaign"; campaigns are referred to by advertiser or product name (artifact and Monday drafts).
 - Extra KPI files (Excel/CSV): setup dialog (large window: per-column calculation buttons, suggested ratios CTR / viewability / VTR detected from the column names) with exact calculations done by the page (no more 25 000-character truncation when columns are picked), ratios, split by column, "how to read it" note, file templates saved in the DB and applied automatically. Semicolon CSVs and European number formats are read correctly. Without a picked column, the raw file is still sent (truncation now flagged).
