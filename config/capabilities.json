@@ -16,7 +16,8 @@
       { "path": "examples",  "read": "owner", "write": "owner" },
       { "path": "style",     "read": "owner", "write": "owner" },
       { "path": "drafts",    "read": "owner", "write": "owner" },
-      { "path": "config",    "read": "owner", "write": "owner" }
+      { "path": "config",    "read": "owner", "write": "owner" },
+      { "path": "filetemplates", "read": "owner", "write": "owner" }
     ]
   },
   "user": {}
