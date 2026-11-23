@@ -49,6 +49,8 @@ label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
 .fcol.on{background:#FFF0F2}
 .fcol .nm{font-weight:600;font-size:13.5px;word-break:break-word}
 .fcol .ex{color:var(--g4);font-size:12px;font-weight:400;display:block;margin-top:2px;border:none;padding:0;background:none}
+.fagg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.f-cunit,.f-runit{padding:5px 8px;font-size:12px;border-radius:16px}
 .seg{display:inline-flex;border:1px solid var(--g2);border-radius:20px;overflow:hidden}
 .seg button{border:none;background:#fff;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer;color:#000;border-left:1px solid var(--g1)}
 .seg button:first-child{border-left:none}
@@ -346,7 +348,7 @@ $("#fileIn").onchange = e => { handleFiles(e.target.files); e.target.value = "";
 async function handleFiles(list) {
   for (const f of list) {
     const ext = f.name.split(".").pop().toLowerCase();
-    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "", excl: [], keepAuto: false };
+    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, units: {}, split: "", ratios: [], note: "", tpl: "", excl: [], keepAuto: false };
     try {
       if (["png", "jpg", "jpeg", "webp"].includes(ext)) { entry.kind = "image"; entry.blob = f; }
       else if (["csv", "xlsx", "xls"].includes(ext)) {
@@ -411,6 +413,9 @@ function tableOf(f, sh = f.sheets[f.sheet]) {
   numeric = numericOf(data);
   return { header, data, numeric, sheetName: sh?.name, dropped: f.keepAuto ? dropped.filter(x => x.why === "manual") : dropped };
 }
+const UNITS = { "": "number", "%": "%", "€": "€" };
+const rUnit = r => r.unit != null ? r.unit : r.pct ? "%" : "";
+const fmtU = (v, u) => v == null ? "—" : u === "€" ? "€" + (Math.abs(v) >= 1000 ? fmt(v) : (+v).toFixed(2)) : u === "%" ? pct(v, 2) : fmtN(v);
 const AGGS = { "": "—", sum: "Sum", avg: "Average", min: "Min", max: "Max", last: "Last value" };
 function aggOf(vals, how) {
   const v = vals.map(parseNum).filter(x => !isNaN(x)); if (!v.length) return null;
@@ -425,12 +430,15 @@ function computeFile(f) {
   if (!cols.length && !ratios.length) return null;
   const metrics = rows => {
     const o = {};
-    cols.forEach(([n, a]) => o[`${n} (${AGGS[a].toLowerCase()})`] = aggOf(rows.map(r => r[ix(n)]), a));
-    ratios.forEach(r => { const num = aggOf(rows.map(x => x[ix(r.num)]), "sum"), den = aggOf(rows.map(x => x[ix(r.den)]), "sum");
-      o[r.name + (r.pct ? " (%)" : "")] = num != null && den ? +((num / den) * (r.pct ? 100 : 1)).toFixed(r.pct ? 2 : 4) : null; });
+    cols.forEach(([n, a]) => { const u = (f.units || {})[n] || ""; o[`${n} (${AGGS[a].toLowerCase()}${u ? ", " + u : ""})`] = aggOf(rows.map(r => r[ix(n)]), a); });
+    ratios.forEach(r => { const u = rUnit(r), num = aggOf(rows.map(x => x[ix(r.num)]), "sum"), den = aggOf(rows.map(x => x[ix(r.den)]), "sum");
+      o[r.name + (u ? ` (${u})` : "")] = num != null && den ? +((num / den) * (u === "%" ? 100 : 1)).toFixed(u === "%" || u === "€" ? 2 : 4) : null; });
     return o;
   };
   const out = { sheet: T.sheetName, rows_used: T.data.length, total: metrics(T.data) };
+  // same figures as a list, to show them in the campaign card
+  const tot = out.total; out.kpis = [...cols.map(([n, a]) => { const u = (f.units || {})[n] || ""; return { label: n, how: AGGS[a].toLowerCase(), unit: u, value: tot[`${n} (${AGGS[a].toLowerCase()}${u ? ", " + u : ""})`] }; }),
+    ...ratios.map(r => { const u = rUnit(r); return { label: r.name, how: `${r.num} ÷ ${r.den}`, unit: u, value: tot[r.name + (u ? ` (${u})` : "")] }; })];
   if (T.dropped.length) out.rows_excluded = `${T.dropped.length} report set-up / total / filtered rows left out`;
   const si = ix(f.split);
   if (si > -1) {
@@ -447,7 +455,7 @@ function rawText(f) {
   const t = f.sheets.map(x => { const T = tableOf(f, x); return `## Sheet: ${x.name}\n` + [T.header, ...T.data].map(csv).join("\n"); }).join("\n\n");
   return t.length > RAW_MAX ? t.slice(0, RAW_MAX) + `\n[file truncated: only the first ${RAW_MAX} characters are shown]` : t;
 }
-function tplData(f) { const T = tableOf(f); return { name: f.tpl.trim(), sheetName: T.sheetName, cols: Object.fromEntries(Object.entries(f.cols).filter(([, a]) => a)), split: f.split, ratios: f.ratios.filter(r => r.name && r.num && r.den), note: f.note, excl: (f.excl || []).filter(x => x.col), keepAuto: !!f.keepAuto, ts: Date.now() }; }
+function tplData(f) { const T = tableOf(f); return { name: f.tpl.trim(), sheetName: T.sheetName, cols: Object.fromEntries(Object.entries(f.cols).filter(([, a]) => a)), units: Object.fromEntries(Object.entries(f.units || {}).filter(([n, u]) => u && f.cols[n])), split: f.split, ratios: f.ratios.filter(r => r.name && r.num && r.den), note: f.note, excl: (f.excl || []).filter(x => x.col), keepAuto: !!f.keepAuto, ts: Date.now() }; }
 const tplNeeds = t => [...Object.keys(t.cols || {}), ...(t.ratios || []).flatMap(r => [r.num, r.den]), ...(t.split ? [t.split] : [])];
 // best saved template whose columns all exist in one of the file's sheets
 function matchTemplate(f) {
@@ -460,7 +468,7 @@ function matchTemplate(f) {
 }
 function applyTemplate(f, t) {
   if (t._sheet != null) f.sheet = t._sheet; else { const i = f.sheets.findIndex(x => x.name === t.sheetName); if (i > -1) f.sheet = i; }
-  f.cols = { ...(t.cols || {}) }; f.split = t.split || ""; f.ratios = (t.ratios || []).map(r => ({ ...r })); f.note = t.note || ""; f.tpl = t.name; f.excl = (t.excl || []).map(x => ({ ...x })); f.keepAuto = !!t.keepAuto;
+  f.cols = { ...(t.cols || {}) }; f.units = { ...(t.units || {}) }; f.split = t.split || ""; f.ratios = (t.ratios || []).map(r => ({ ...r })); f.note = t.note || ""; f.tpl = t.name; f.excl = (t.excl || []).map(x => ({ ...x })); f.keepAuto = !!t.keepAuto;
 }
 let tplCol = null;
 const tplId = n => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "template";
@@ -478,7 +486,7 @@ function renderTemplates() {
   state.templates.forEach(t => {
     const d = document.createElement("div"); d.className = "rl";
     const l = document.createElement("span"); l.style.flex = "1";
-    const parts = [...Object.entries(t.cols || {}).map(([n, a]) => `${n} → ${AGGS[a].toLowerCase()}`), ...(t.ratios || []).map(r => `${r.name} = ${r.num} ÷ ${r.den}${r.pct ? " × 100" : ""}`)];
+    const parts = [...Object.entries(t.cols || {}).map(([n, a]) => `${n} → ${AGGS[a].toLowerCase()}`), ...(t.ratios || []).map(r => `${r.name} = ${r.num} ÷ ${r.den}${rUnit(r) === "%" ? " × 100" : rUnit(r) === "€" ? " (€)" : ""}`)];
     l.innerHTML = `<b>${esc(t.name)}</b> · ${esc(parts.join(" · "))}${t.split ? ` · split by ${esc(t.split)}` : ""}${t.note ? `<br><span class="muted">${esc(t.note)}</span>` : ""}`;
     const del = document.createElement("button"); del.textContent = "×"; del.title = "Delete this template"; del.style.cssText = "border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700";
     del.onclick = async () => { try { await tplCol.doc(tplId(t.name)).delete(); } catch (e) { note("Could not delete: " + (e?.message || e), "err"); } };
@@ -537,14 +545,14 @@ function renderCfg() {
         </div>
         <div class="fsec"><div class="fstep">2 · Columns and calculation</div><div class="muted">For each column you need, choose how to combine its rows. Leave the others on “—”.</div>
           <div class="fcols">${num.length ? num.map(n => `<div class="fcol ${f.cols[n] ? "on" : ""}"><div class="nm">${esc(n)}<span class="ex">${esc(sample(T.header.indexOf(n)))}</span></div>
-            <div class="seg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<button data-a="${k}" class="${(f.cols[n] || "") === k ? "on" : ""}">${k === "last" ? "Last" : k === "avg" ? "Avg" : l}</button>`).join("")}</div></div>`).join("")
+            <div class="fagg"><div class="seg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<button data-a="${k}" class="${(f.cols[n] || "") === k ? "on" : ""}">${k === "last" ? "Last" : k === "avg" ? "Avg" : l}</button>`).join("")}</div>${f.cols[n] ? `<select class="f-cunit" data-c="${esc(n)}" title="Unit">${Object.entries(UNITS).map(([k, l]) => `<option value="${k}" ${((f.units || {})[n] || "") === k ? "selected" : ""}>${l}</option>`).join("")}</select>` : ""}</div></div>`).join("")
             : `<div class="fcol muted">No numeric column found in this sheet.</div>`}</div>
           ${txt.length ? `<div class="muted" style="margin-top:6px">Text columns (usable in step 4): ${txt.map(esc).join(", ")}</div>` : ""}
         </div>
       </div>
       <div>
         <div class="fsec"><div class="fstep">3 · Ratios</div><div class="muted">Sum of one column ÷ sum of another — the right way to get a rate over many rows.</div>
-          ${f.ratios.map((r, i) => `<div class="frt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name (e.g. CTR)" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "Numerator…")}</select><span class="op">÷</span><select class="f-rden">${opt(num, r.den, "Denominator…")}</select><label title="Multiply by 100"><input type="checkbox" class="f-rpct" ${r.pct ? "checked" : ""}> in %</label><button class="x f-rdel" title="Remove">×</button></div>`).join("")}
+          ${f.ratios.map((r, i) => `<div class="frt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name (e.g. CTR)" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "Numerator…")}</select><span class="op">÷</span><select class="f-rden">${opt(num, r.den, "Denominator…")}</select><select class="f-runit" title="Unit — % multiplies by 100">${Object.entries(UNITS).map(([k, l]) => `<option value="${k}" ${rUnit(r) === k ? "selected" : ""}>${k === "%" ? "% (×100)" : l}</option>`).join("")}</select><button class="x f-rdel" title="Remove">×</button></div>`).join("")}
           <div style="display:flex;gap:6px;flex-wrap:wrap">${sug.map((r, i) => `<button class="mini sug f-sug" data-i="${i}" title="${esc(r.num)} ÷ ${esc(r.den)}">+ ${esc(r.name)} <small>suggested</small></button>`).join("")}<button class="mini f-radd">+ Custom ratio</button></div>
         </div>
         <div class="fsec"><div class="fstep">4 · Split by (optional)</div><div class="muted">One line per value, e.g. per placement, site or date.</div>
@@ -566,10 +574,11 @@ function renderCfg() {
   p.querySelectorAll(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => { f.cols[sg.dataset.c] = b.dataset.a; re(); }));
   p.querySelectorAll(".frt").forEach(row => { const r = f.ratios[+row.dataset.i], g = sel => row.querySelector(sel);
     g(".f-rn").onchange = e => { r.name = e.target.value; re(); }; g(".f-rnum").onchange = e => { r.num = e.target.value; re(); };
-    g(".f-rden").onchange = e => { r.den = e.target.value; re(); }; g(".f-rpct").onchange = e => { r.pct = e.target.checked; re(); };
+    g(".f-rden").onchange = e => { r.den = e.target.value; re(); }; g(".f-runit").onchange = e => { r.unit = e.target.value; r.pct = r.unit === "%"; re(); };
     g(".f-rdel").onclick = () => { f.ratios.splice(+row.dataset.i, 1); re(); }; });
+  p.querySelectorAll(".f-cunit").forEach(s => s.onchange = e => { (f.units ||= {})[s.dataset.c] = e.target.value; re(); });
   p.querySelectorAll(".f-sug").forEach(b => b.onclick = () => { f.ratios.push({ ...sug[+b.dataset.i] }); re(); });
-  q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true }); re(); };
+  q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true, unit: "%" }); re(); };
   q(".f-split").onchange = e => { f.split = e.target.value; re(); };
   q(".f-keep").onchange = e => { f.keepAuto = e.target.checked; re(); };
   q(".f-eadd").onclick = () => { (f.excl ||= []).push({ col: "", op: "contains", val: "" }); re(); };
@@ -1031,18 +1040,20 @@ function renderResults() {
     const L = r.last;
     const fv = (v, u) => v == null ? "—" : u === "€" ? "€" + (+v).toFixed(2) : u === "#" ? fmt(v) : pct(v, 2);
     const rowsK = r.kpis.map(k => {
-      const u = k.unit || "%"; const diff = k.target != null && k.actual != null ? k.actual - k.target : null;
+      const u = k.unit || "%", ok = v => v != null && !isNaN(v); const diff = ok(k.target) && ok(k.actual) ? k.actual - k.target : null;
       const good = diff == null ? null : (k.lowerBetter ? diff <= 0 : diff >= 0);
       const dTxt = diff == null ? "—" : (diff >= 0 ? "+" : "−") + (u === "€" ? "€" + Math.abs(diff).toFixed(2) : Math.abs(diff).toFixed(2) + " pts");
-      return `<tr><td>${esc(k.label)}</td><td>${fv(k.target, u)}</td><td>${fv(k.actual, u)}</td><td class="${good == null ? "" : good ? "d-ok" : "d-ko"}">${dTxt}</td></tr>`;
+      return `<tr><td>${esc(k.label)}</td><td>${fv(ok(k.target) ? k.target : null, u)}</td><td>${fv(ok(k.actual) ? k.actual : null, u)}</td><td class="${good == null ? "" : good ? "d-ok" : "d-ko"}">${dTxt}</td></tr>`;
     }).join("");
+    const fileK = state.files.filter(f => (f.target === "all" || f.target === r.id) && f.sheets?.length).flatMap(f => { const c = computeFile(f); return c ? c.kpis.map(k => ({ ...k, file: f.name })) : []; })
+      .map(k => `<tr><td title="${esc(k.how)} · from ${esc(k.file)}">${esc(k.label)} <span class="muted">· report</span></td><td>—</td><td>${fmtU(k.value, k.unit)}</td><td>—</td></tr>`).join("");
     const del = `<tr><td>${r.type === "Performance" ? "Spend to date (€)" : "Delivery to date (" + esc(r.pm) + ")"}</td><td>${fmt(r.expectedToDate)}</td><td>${fmt(L.units_accumulated)}</td><td class="${r.pacing == null ? "" : r.pacing >= 98 ? "d-ok" : "d-ko"}">${r.pacing == null ? "—" : pct(r.pacing, 0)}</td></tr>`;
     const proj = r.projected;
     main.insertAdjacentHTML("beforeend", `<div class="card">
       <div class="crm-head"><div><h3>${esc(r.id)} · ${esc(r.name)}</h3>
         <p>${r.jira ? `<a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a> · ` : ""}CSM ${esc(r.csm || "—")} · ${dmy(L.start_dt)} → ${dmy(L.end_dt)} (${L.days_left ?? "—"} days left) · ${fmt(L.salesforce_configured_units)} units · ${esc(r.pm)} ${L.payment_value ?? ""} ${esc(L.currency || "")} · ${fmt(L.booked_revenue)} ${esc(L.currency || "")}</p></div>
         <div style="text-align:right"><span class="pill ${r.cls}">${esc(r.status)}</span>${r.why.length && !r.ended ? `<div class="muted" style="margin-top:6px;font-size:11px">${r.why.map(esc).join("<br>")}</div>` : ""}</div></div>
-      <table><tr><th>KPI</th><th>Target</th><th>Actual</th><th>Gap</th></tr>${del}${rowsK}</table>
+      <table><tr><th>KPI</th><th>Target</th><th>Actual</th><th>Gap</th></tr>${del}${rowsK}${fileK}</table>
       ${perfBlock(r)}
       ${sinceBlock(r)}
       ${insightsBlock(r)}
@@ -1215,7 +1226,7 @@ function buildPrompt() {
   const tables = state.files.filter(f => f.kind === "table").map(f => {
     const res = computeFile(f), head = `### File "${f.name}"${f.tpl ? ` · report type: ${f.tpl}` : ""} (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})`;
     const how = f.note.trim() ? `\nHow to read it (from ${AUTHOR}): ${f.note.trim()}` : "";
-    return res ? `${head}${how}\nFigures computed exactly by the page from ${res.rows_used} rows of sheet "${res.sheet}" — use them as they are, don't recompute:\n${JSON.stringify(res, null, 1)}`
+    return res ? `${head}${how}\nFigures computed exactly by the page from ${res.rows_used} rows of sheet "${res.sheet}" — use them as they are, don't recompute. Units are in brackets after each name (€ = euros, % = percentage, none = plain number); quote them with that unit:\n${JSON.stringify((({ kpis, ...o }) => o)(res), null, 1)}`
       : `${head}${how}\n${rawText(f)}`;
   }).join("\n\n");
   const imgs = state.files.filter(f => f.kind === "image").map((f, i) => `Image ${i + 1}: "${f.name}" (applies to: ${f.target === "all" ? "all campaigns" : "CRM " + f.target})`).join("\n");
@@ -1233,6 +1244,7 @@ WRITING STYLE — this is the most important part:
 - The chosen LENGTH/TONE below changes the format a lot — follow it strictly.
 - Write like a person, not a report. Picture yourself (${sig}) typing a quick comment to a colleague you work with every day: relaxed, direct, friendly. English.
 - VARY THE SHAPE: campaign sections must not all follow the same mould. Change how each one opens (the verdict, the key figure, what changed, the client's angle…), vary sentence length, and never start two sections — or two sentences in a row — with the same words or the same structure ("The campaign…", "CTR is…"). Factual bullets keep their format, but the conclusion sentence must still differ from one campaign to the next.
+- REFER TO CAMPAIGNS BY NAME: never open a sentence with "One campaign", "One of the campaigns", "The other campaign", "This campaign" or "The campaign". Use the advertiser or product name ("Volvo's video…", "The Ikea display line…") or start straight with the fact ("Pacing is back to **98%**…").
 - CONNECT THE IDEAS like someone talking: link sentences with natural connectors ("so", "that said", "on the flip side", "which means", "the good news is", "for now") instead of stacking independent statements. Don't overdo it — one or two per section.
 - Layout (paragraphs vs bullets) is set by the LENGTH/TONE below — follow it. Otherwise, prefer short paragraphs of natural sentences.
 - Don't recite every metric. Pick what matters, say what it means ("we're slightly behind, nothing worrying", "CTR is doing really well"), and move on. One idea per sentence, varied sentence length.
