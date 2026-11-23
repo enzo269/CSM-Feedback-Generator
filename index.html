@@ -32,19 +32,39 @@ label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
 .file select{width:auto;padding:2px 4px;font-size:11px}
 .file button{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700}
 .file .cfg{color:#000;font-weight:500;font-size:11px;border:1px solid var(--g2);border-radius:8px;padding:2px 6px}
-.fcfg{background:var(--cream);border-radius:10px;padding:10px;margin:6px 0 10px;font-size:12px}
-.fcfg label{font-size:11px;margin:8px 0 3px;display:block;color:var(--g4)}
-.fcfg select,.fcfg input[type=text],.fcfg textarea{padding:5px 6px;font-size:12px;border-radius:8px}
-.fcfg .cols{max-height:220px;overflow:auto;background:#fff;border-radius:8px;border:1px solid var(--g1)}
-.fcfg .col{display:flex;align-items:center;gap:6px;padding:4px 6px;border-bottom:1px solid var(--g1)}
-.fcfg .col span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fcfg .col i{color:var(--g3);font-style:normal;font-size:11px}
-.fcfg .col select{width:auto}
-.fcfg .rt{display:flex;gap:4px;align-items:center;margin-top:4px}
-.fcfg .rt select,.fcfg .rt input[type=text]{flex:1;min-width:0}
-.fcfg .mini{border:1px solid var(--g2);background:#fff;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;color:#000}
-.fcfg table{font-size:11px;background:#fff;margin-top:4px}
-.fcfg .row2{display:flex;gap:6px;align-items:center}
+.fmodal{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px}
+.fbox{background:#fff;border-radius:16px;width:min(1100px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.fhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:18px 22px;border-bottom:1px solid var(--g1)}
+.fhead h3{font-size:17px;margin:0;flex:1;min-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fhead .muted{display:block;font-weight:400;margin-top:2px}
+.fhead input[type=text],.fhead select{width:auto;min-width:200px}
+.fbody{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;padding:18px 22px;overflow:auto}
+.ffoot{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 22px;border-top:1px solid var(--g1);background:var(--cream);border-radius:0 0 16px 16px}
+.fstep{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 4px}
+.fstep+.muted{margin-bottom:10px}
+.fsec{margin-bottom:20px}
+.fcols{border:1px solid var(--g1);border-radius:12px;max-height:52vh;overflow:auto}
+.fcol{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--g1)}
+.fcol:last-child{border-bottom:none}
+.fcol.on{background:#FFF0F2}
+.fcol .nm{font-weight:600;font-size:13.5px;word-break:break-word}
+.fcol .ex{color:var(--g4);font-size:12px;font-weight:400;display:block;margin-top:2px;border:none;padding:0;background:none}
+.seg{display:inline-flex;border:1px solid var(--g2);border-radius:20px;overflow:hidden}
+.seg button{border:none;background:#fff;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer;color:#000;border-left:1px solid var(--g1)}
+.seg button:first-child{border-left:none}
+.seg button.on{background:var(--coral);color:#000;font-weight:600}
+.seg button.on[data-a=""]{background:var(--g1);font-weight:400}
+.mini small{color:var(--g4);font-size:11px}
+.frt{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr) auto minmax(0,1fr) auto auto;gap:8px;align-items:center;margin-bottom:8px}
+.frt .op{font-size:16px;color:var(--g4)}
+.frt label{display:flex;gap:4px;align-items:center;font-size:12px;margin:0;white-space:nowrap}
+.frt .x,.fhead .x{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700;font-size:18px}
+.mini{border:1px solid var(--g2);background:#fff;border-radius:20px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer;color:#000}
+.mini.sug{border-color:var(--coral)}
+.fprev{overflow:auto;border:1px solid var(--g1);border-radius:12px}
+.fprev table{font-size:12.5px;margin:0}
+.fprev td:first-child{font-weight:600}
+@media (max-width:820px){.fbody{grid-template-columns:1fr}.frt{grid-template-columns:1fr 1fr}.frt .op{display:none}}
 select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid var(--g1);border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
 input,select,textarea{color:#000;-webkit-text-fill-color:#000}
 ::placeholder{color:var(--g3);-webkit-text-fill-color:var(--g3);opacity:1}
@@ -318,7 +338,7 @@ $("#fileIn").onchange = e => { handleFiles(e.target.files); e.target.value = "";
 async function handleFiles(list) {
   for (const f of list) {
     const ext = f.name.split(".").pop().toLowerCase();
-    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "", open: false };
+    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "" };
     try {
       if (["png", "jpg", "jpeg", "webp"].includes(ext)) { entry.kind = "image"; entry.blob = f; }
       else if (["csv", "xlsx", "xls"].includes(ext)) {
@@ -429,29 +449,85 @@ function renderTemplates() {
     d.append(l, del); box.appendChild(d);
   });
 }
-function cfgPanel(f) {
+// ratio suggestions from the column names (CTR, viewability, VTR)
+function ratioSuggestions(f, num) {
+  const find = re => num.find(n => re.test(n));
+  const out = [], imp = find(/^impress|impressions$/i) || find(/impress/i), clk = find(/click/i);
+  const vwb = find(/viewabl|in.?view/i), msr = find(/measur/i), cmp = find(/complet/i), st = find(/start|plays?$/i);
+  if (clk && imp) out.push({ name: "CTR", num: clk, den: imp, pct: true });
+  if (vwb && msr && vwb !== msr) out.push({ name: "Viewability", num: vwb, den: msr, pct: true });
+  if (cmp && (st || imp)) out.push({ name: "VTR", num: cmp, den: st || imp, pct: true });
+  return out.filter(r => !f.ratios.some(x => x.name === r.name));
+}
+let cfgFile = null;
+function openCfg(f) { cfgFile = f; renderCfg(); }
+function closeCfg() { cfgFile = null; $("#fmodal")?.remove(); renderFiles(); }
+function renderCfg() {
+  const f = cfgFile; if (!f) return;
+  const keep = $("#fmodal .fcols")?.scrollTop || 0, keepB = $("#fmodal .fbody")?.scrollTop || 0;
+  $("#fmodal")?.remove();
   const T = tableOf(f), num = T.header.filter((_, i) => T.numeric[i]), txt = T.header.filter((_, i) => !T.numeric[i]);
   const opt = (list, v, blank) => (blank != null ? `<option value="">${blank}</option>` : "") + list.map(n => `<option ${n === v ? "selected" : ""}>${esc(n)}</option>`).join("");
-  const sample = i => { const v = T.data.find(r => String(r[i] ?? "").trim() !== ""); return v ? String(v[i]).slice(0, 14) : ""; };
-  const res = computeFile(f);
-  const prev = res ? (() => { const rows = [{ "": "Total", ...res.total }, ...(res.groups || []).slice(0, 6).map(g => { const { rows: _, ...m } = g; const k = m[res.split_by]; delete m[res.split_by]; return { "": k, ...m }; })];
+  const sample = i => { const v = T.data.slice(0, 50).map(r => r[i]).filter(x => String(x ?? "").trim() !== ""); return v.length ? v.slice(0, 3).map(x => String(x).slice(0, 16)).join(" · ") : "empty"; };
+  const res = computeFile(f), sug = ratioSuggestions(f, num), big = rawText(f).includes("[file truncated");
+  const picked = Object.values(f.cols).filter(Boolean).length + f.ratios.filter(r => r.name && r.num && r.den).length;
+  const prev = res ? (() => {
+    const rows = [{ "": "Total", ...res.total }, ...(res.groups || []).slice(0, 10).map(g => { const { rows: _, ...m } = g; const k = m[res.split_by]; delete m[res.split_by]; return { "": k, ...m }; })];
     const ks = Object.keys(rows[0]);
-    return `<label>What Claude will get (computed from ${res.rows_used} rows${res.groups ? `, ${res.groups.length} groups` : ""})</label><div style="overflow:auto"><table><tr>${ks.map(k => `<th>${esc(k)}</th>`).join("")}</tr>${rows.map(r => `<tr>${ks.map(k => `<td>${esc(r[k] == null ? "—" : typeof r[k] === "number" ? +r[k].toFixed(2) : r[k])}</td>`).join("")}</tr>`).join("")}</table></div>`; })()
-    : `<div class="muted" style="margin-top:8px">No column picked: Claude gets the raw file${rawText(f).includes("[file truncated") ? ` — <b>too big, it will be cut at ${RAW_MAX} characters</b>` : ""}.</div>`;
-  return `<div class="fcfg">
-    <div class="row2"><input type="text" class="f-tpl" list="tplNames" placeholder="Report type (e.g. IAS, Brand lift)" value="${esc(f.tpl)}"><button class="mini f-save">Save as template</button></div>
-    <datalist id="tplNames">${state.templates.map(t => `<option value="${esc(t.name)}">`).join("")}</datalist>
-    ${f.sheets.length > 1 ? `<label>Sheet</label><select class="f-sheet">${f.sheets.map((x, i) => `<option value="${i}" ${i === f.sheet ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>` : ""}
-    <label>Columns to use · ${T.data.length} rows</label>
-    <div class="cols">${num.length ? num.map(n => `<div class="col"><span title="${esc(n)}">${esc(n)}</span><i>${esc(sample(T.header.indexOf(n)))}</i><select class="f-agg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<option value="${k}" ${f.cols[n] === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>`).join("") : `<div class="col muted">No numeric column found in this sheet.</div>`}</div>
-    <label>Ratios (sum ÷ sum, e.g. CTR = clicks ÷ impressions)</label>
-    ${f.ratios.map((r, i) => `<div class="rt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "numerator")}</select>÷<select class="f-rden">${opt(num, r.den, "denominator")}</select><label style="margin:0;display:flex;gap:2px;align-items:center" title="Multiply by 100 (percentage)"><input type="checkbox" class="f-rpct" ${r.pct ? "checked" : ""}>%</label><button class="f-rdel" title="Remove">×</button></div>`).join("")}
-    <button class="mini f-radd" style="margin-top:4px">+ Add a ratio</button>
-    <label>Split by (optional — one line per value, e.g. placement or date)</label><select class="f-split">${opt(txt, f.split, "No split (total only)")}</select>
-    <label>How to read it (sent to Claude with the figures)</label><textarea class="f-note" rows="2" placeholder="e.g. Brand lift = uplift vs control group; only quote significant results">${esc(f.note)}</textarea>
-    ${prev}
-  </div>`;
+    return `<div class="fprev"><table><tr>${ks.map(k => `<th>${esc(k)}</th>`).join("")}</tr>${rows.map(r => `<tr>${ks.map(k => `<td>${esc(r[k] == null ? "—" : typeof r[k] === "number" ? fmtN(r[k]) : r[k])}</td>`).join("")}</tr>`).join("")}</table></div>
+      <div class="muted" style="margin-top:6px">Computed from ${res.rows_used} rows${res.groups ? ` · ${res.groups.length} groups shown to Claude${res.groups_note ? " (" + esc(res.groups_note) + ")" : ""}` : ""}.</div>`; })()
+    : `<div class="muted">Nothing picked yet — Claude would get the raw file${big ? ` and <b style="color:#000">it is too big: it would be cut at ${RAW_MAX.toLocaleString("en-US").replace(/,/g, " ")} characters</b>` : ""}.</div>`;
+  document.body.insertAdjacentHTML("beforeend", `<div class="fmodal" id="fmodal"><div class="fbox" role="dialog" aria-label="Set up the file">
+    <div class="fhead">
+      <h3 title="${esc(f.name)}">${esc(f.name)}<span class="muted">${T.data.length} rows · ${T.header.length} columns${f.sheets.length > 1 ? "" : " · sheet " + esc(T.sheetName)}</span></h3>
+      ${f.sheets.length > 1 ? `<select class="f-sheet" title="Sheet">${f.sheets.map((x, i) => `<option value="${i}" ${i === f.sheet ? "selected" : ""}>Sheet: ${esc(x.name)}</option>`).join("")}</select>` : ""}
+      <input type="text" class="f-tpl" list="tplNames" placeholder="Report type (e.g. IAS, CM360)" value="${esc(f.tpl)}">
+      <datalist id="tplNames">${state.templates.map(t => `<option value="${esc(t.name)}">`).join("")}</datalist>
+      <button class="mini f-save">Save as template</button>
+      <button class="x f-close" title="Close">×</button>
+    </div>
+    <div class="fbody">
+      <div>
+        <div class="fsec"><div class="fstep">1 · Columns and calculation</div><div class="muted">For each column you need, choose how to combine its rows. Leave the others on “—”.</div>
+          <div class="fcols">${num.length ? num.map(n => `<div class="fcol ${f.cols[n] ? "on" : ""}"><div class="nm">${esc(n)}<span class="ex">${esc(sample(T.header.indexOf(n)))}</span></div>
+            <div class="seg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<button data-a="${k}" class="${(f.cols[n] || "") === k ? "on" : ""}">${k === "last" ? "Last" : k === "avg" ? "Avg" : l}</button>`).join("")}</div></div>`).join("")
+            : `<div class="fcol muted">No numeric column found in this sheet.</div>`}</div>
+          ${txt.length ? `<div class="muted" style="margin-top:6px">Text columns (usable in step 3): ${txt.map(esc).join(", ")}</div>` : ""}
+        </div>
+      </div>
+      <div>
+        <div class="fsec"><div class="fstep">2 · Ratios</div><div class="muted">Sum of one column ÷ sum of another — the right way to get a rate over many rows.</div>
+          ${f.ratios.map((r, i) => `<div class="frt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name (e.g. CTR)" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "Numerator…")}</select><span class="op">÷</span><select class="f-rden">${opt(num, r.den, "Denominator…")}</select><label title="Multiply by 100"><input type="checkbox" class="f-rpct" ${r.pct ? "checked" : ""}> in %</label><button class="x f-rdel" title="Remove">×</button></div>`).join("")}
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${sug.map((r, i) => `<button class="mini sug f-sug" data-i="${i}" title="${esc(r.num)} ÷ ${esc(r.den)}">+ ${esc(r.name)} <small>suggested</small></button>`).join("")}<button class="mini f-radd">+ Custom ratio</button></div>
+        </div>
+        <div class="fsec"><div class="fstep">3 · Split by (optional)</div><div class="muted">One line per value, e.g. per placement, site or date.</div>
+          <select class="f-split">${opt(txt, f.split, "No split — total only")}</select></div>
+        <div class="fsec"><div class="fstep">4 · How to read it</div><div class="muted">Sent to Claude with the figures.</div>
+          <textarea class="f-note" rows="3" placeholder="e.g. Brand lift = uplift vs control group; only quote significant results">${esc(f.note)}</textarea></div>
+        <div class="fsec"><div class="fstep">What Claude will get</div>${prev}</div>
+      </div>
+    </div>
+    <div class="ffoot"><span class="muted">${picked ? `<b style="color:#000">${picked}</b> figure${picked > 1 ? "s" : ""} computed by the page — exact, nothing truncated.` : "Pick at least one column or ratio to send exact figures."}</span><button class="btn f-done" style="width:auto;padding:10px 26px">Done</button></div>
+  </div></div>`);
+  const p = $("#fmodal"), q = sel => p.querySelector(sel), re = () => renderCfg();
+  p.querySelector(".fcols").scrollTop = keep; p.querySelector(".fbody").scrollTop = keepB;
+  p.onclick = e => { if (e.target === p) closeCfg(); };
+  q(".f-close").onclick = closeCfg; q(".f-done").onclick = closeCfg;
+  q(".f-tpl").onchange = e => { f.tpl = e.target.value; const t = state.templates.find(x => x.name === f.tpl); if (t) applyTemplate(f, t); re(); };
+  q(".f-save").onclick = () => { f.tpl = q(".f-tpl").value; f.note = q(".f-note").value; saveTemplate(f); };
+  q(".f-sheet") && (q(".f-sheet").onchange = e => { f.sheet = +e.target.value; re(); });
+  p.querySelectorAll(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => { f.cols[sg.dataset.c] = b.dataset.a; re(); }));
+  p.querySelectorAll(".frt").forEach(row => { const r = f.ratios[+row.dataset.i], g = sel => row.querySelector(sel);
+    g(".f-rn").onchange = e => { r.name = e.target.value; re(); }; g(".f-rnum").onchange = e => { r.num = e.target.value; re(); };
+    g(".f-rden").onchange = e => { r.den = e.target.value; re(); }; g(".f-rpct").onchange = e => { r.pct = e.target.checked; re(); };
+    g(".f-rdel").onclick = () => { f.ratios.splice(+row.dataset.i, 1); re(); }; });
+  p.querySelectorAll(".f-sug").forEach(b => b.onclick = () => { f.ratios.push({ ...sug[+b.dataset.i] }); re(); });
+  q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true }); re(); };
+  q(".f-split").onchange = e => { f.split = e.target.value; re(); };
+  q(".f-note").oninput = e => { f.note = e.target.value; };
 }
+const fmtN = n => Math.abs(n) >= 1000 ? Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : +n.toFixed(2);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && cfgFile) closeCfg(); });
 function renderFiles() {
   const box = $("#files"); box.innerHTML = "";
   state.files.forEach((f, i) => {
@@ -464,25 +540,15 @@ function renderFiles() {
     const b = document.createElement("button"); b.textContent = "×"; b.title = "Remove"; b.onclick = () => { state.files.splice(i, 1); renderFiles(); };
     if (f.kind === "table") {
       const c = document.createElement("button"); c.className = "cfg"; const res = computeFile(f);
-      c.textContent = (f.open ? "▾ " : "▸ ") + (f.tpl ? f.tpl : res ? "Columns ✓" : "Columns");
-      c.title = "Pick the columns and the calculation"; c.onclick = () => { f.open = !f.open; renderFiles(); };
+      c.textContent = f.tpl ? "⚙ " + f.tpl : res ? "⚙ Set up ✓" : "⚙ Set up";
+      c.title = "Pick the columns and the calculation"; c.onclick = () => openCfg(f);
       d.append(n, c, s, b);
     } else d.append(n, s, b);
     box.appendChild(d);
-    if (f.kind === "table" && f.open) {
-      const w = document.createElement("div"); w.innerHTML = cfgPanel(f); const p = w.firstElementChild; box.appendChild(p);
-      const re = () => renderFiles(), q = sel => p.querySelector(sel);
-      q(".f-tpl").onchange = e => { f.tpl = e.target.value; const t = state.templates.find(x => x.name === f.tpl); if (t) applyTemplate(f, t); re(); };
-      q(".f-save").onclick = () => { f.tpl = q(".f-tpl").value; f.note = q(".f-note").value; saveTemplate(f); };
-      q(".f-sheet") && (q(".f-sheet").onchange = e => { f.sheet = +e.target.value; re(); });
-      p.querySelectorAll(".f-agg").forEach(x => x.onchange = () => { f.cols[x.dataset.c] = x.value; re(); });
-      p.querySelectorAll(".rt").forEach(row => { const r = f.ratios[+row.dataset.i], g = sel => row.querySelector(sel);
-        g(".f-rn").onchange = e => { r.name = e.target.value; re(); }; g(".f-rnum").onchange = e => { r.num = e.target.value; re(); };
-        g(".f-rden").onchange = e => { r.den = e.target.value; re(); }; g(".f-rpct").onchange = e => { r.pct = e.target.checked; re(); };
-        g(".f-rdel").onclick = () => { f.ratios.splice(+row.dataset.i, 1); re(); }; });
-      q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true }); re(); };
-      q(".f-split").onchange = e => { f.split = e.target.value; re(); };
-      q(".f-note").oninput = e => { f.note = e.target.value; };
+    if (f.kind === "table") {
+      const res = computeFile(f), h = document.createElement("div"); h.className = "muted"; h.style.cssText = "font-size:11px;margin:-2px 0 6px";
+      h.textContent = res ? `${Object.keys(res.total).length} figure(s) computed${res.groups ? `, split by ${res.split_by}` : ""}` : rawText(f).includes("[file truncated") ? "Not set up — the raw file is too big and will be cut. Click Set up." : "Not set up — Claude gets the raw file.";
+      box.appendChild(h);
     }
   });
 }
