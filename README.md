@@ -91,7 +91,7 @@ Table `st_datalakehouse.lab.post_campaign_analysis_view_v2`, filtered by `execut
 | `style/rules` | `{ rules: [{ text, on, ts }] }` — My preferences |
 | `drafts/<batch>_<crm>` | Monday drafts: `ts`, `batch`, `crms`, `csm`, `ops`, `label`, `flag`, `status` (new/posted), `mode`, `text` |
 | `config/watchlist` | `{ crms: [...] }` — campaigns to draft on Mondays |
-| `filetemplates/<slug>` | How to read a type of extra KPI file: `name`, `sheetName`, `cols` (`{column: sum/avg/min/max/last}`), `ratios` (`[{name, num, den, pct}]`), `split`, `note` |
+| `filetemplates/<slug>` | How to read a type of extra KPI file: `name`, `sheetName`, `cols` (`{column: sum/avg/min/max/last}`), `ratios` (`[{name, num, den, pct}]`), `split`, `note`, `excl` (`[{col, op: contains/equals/blank, val}]`), `keepAuto` |
 
 ---
 
@@ -138,6 +138,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 
 **2026-11-23**
 - Extra KPI files (Excel/CSV): setup dialog (large window: per-column calculation buttons, suggested ratios CTR / viewability / VTR detected from the column names) with exact calculations done by the page (no more 25 000-character truncation when columns are picked), ratios, split by column, "how to read it" note, file templates saved in the DB and applied automatically. Semicolon CSVs and European number formats are read correctly. Without a picked column, the raw file is still sent (truncation now flagged).
+- Extra KPI files: report set-up lines (DV360/CM360 footer: Report Time, Date Range, Group By, Filters…) and total rows (all dimension columns blank, or "Total") are excluded automatically — the DV360 total row used to double the sums. Excluded rows are listed in the setup window; extra "Exclude rows where <column> contains / is / is empty" filters, saved in the template (`excl`, `keepAuto`).
 - BNL benchmark per format (last 90 days) on the campaign card and in the prompt.
 - More human writing: sections vary their opening and structure, ideas are linked with natural connectors, a longer list of banned AI phrasing, and the feedback ends with one forward-looking line instead of a recap. Approved examples are now the voice reference (up to 5, followed over the style defaults), and you can paste hand-picked models in My preferences → Approved examples (`examples/<id>` with `manual: true`, used first). Same rules in the Monday drafts prompt.
 

@@ -59,11 +59,19 @@ label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
 .frt .op{font-size:16px;color:var(--g4)}
 .frt label{display:flex;gap:4px;align-items:center;font-size:12px;margin:0;white-space:nowrap}
 .frt .x,.fhead .x{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700;font-size:18px}
+.frows{background:var(--cream);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:8px}
+.frows details{margin-top:6px}.frows summary{cursor:pointer;font-size:12px;color:var(--g4)}
+.fdrop{max-height:160px;overflow:auto;font-size:12px;margin-top:6px;background:#fff;border-radius:8px;padding:6px 8px}
+.fdrop div{padding:3px 0;border-bottom:1px solid var(--g1);word-break:break-word}.fdrop i{font-style:normal;font-size:10px;text-transform:uppercase;letter-spacing:.05em;background:var(--g1);border-radius:6px;padding:1px 6px;margin-right:6px}
+.fkeep{display:flex;gap:6px;align-items:center;font-size:12px;margin-top:8px;color:var(--g4)}
+.fex{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-bottom:8px}.fex select,.fex input[type=text]{width:auto;flex:1;min-width:110px}
+.fex .x{border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700;font-size:18px}
 .mini{border:1px solid var(--g2);background:#fff;border-radius:20px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer;color:#000}
 .mini.sug{border-color:var(--coral)}
 .fprev{overflow:auto;border:1px solid var(--g1);border-radius:12px}
 .fprev table{font-size:12.5px;margin:0}
-.fprev td:first-child{font-weight:600}
+.fprev td:first-child{font-weight:600;max-width:200px;min-width:90px;word-break:break-all;font-size:11.5px;line-height:1.35}
+.fprev td:not(:first-child),.fprev th{white-space:nowrap}
 @media (max-width:820px){.fbody{grid-template-columns:1fr}.frt{grid-template-columns:1fr 1fr}.frt .op{display:none}}
 select,textarea,input[type=number],input[type=text]{width:100%;border:1px solid var(--g1);border-radius:10px;padding:8px;font:inherit;background:#fff;color:#000}
 input,select,textarea{color:#000;-webkit-text-fill-color:#000}
@@ -338,7 +346,7 @@ $("#fileIn").onchange = e => { handleFiles(e.target.files); e.target.value = "";
 async function handleFiles(list) {
   for (const f of list) {
     const ext = f.name.split(".").pop().toLowerCase();
-    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "" };
+    const entry = { name: f.name, target: "all", kind: "", blob: null, sheets: [], sheet: 0, cols: {}, split: "", ratios: [], note: "", tpl: "", excl: [], keepAuto: false };
     try {
       if (["png", "jpg", "jpeg", "webp"].includes(ext)) { entry.kind = "image"; entry.blob = f; }
       else if (["csv", "xlsx", "xls"].includes(ext)) {
@@ -368,15 +376,40 @@ function parseNum(v) {
   else if ((t.match(/\./g) || []).length > 1) t = t.replace(/\./g, "");
   return +t;
 }
-// header = first row (among the first 15) with 2+ filled cells that are mostly text; data = the non-empty rows below it
+// header = first row (among the first 15) with 2+ filled cells that are mostly text.
+// Data = the block of rows right below it, cleaned of what reporting tools (DV360, CM360…) add around the data:
+//  - "setup": everything after the first empty line that follows the data (Report Time, Date Range, Filters…) and short label-only lines
+//  - "total": summary rows (all dimension columns blank, or a first cell "Total" / "Grand total") — they would double the sums
+//  - "manual": rows matching the user's exclusion filters (f.excl)
+const isBlank = x => String(x ?? "").trim() === "";
 function tableOf(f, sh = f.sheets[f.sheet]) {
   const rows = sh?.rows || [];
-  let h = rows.slice(0, 15).findIndex(r => { const v = r.filter(x => String(x).trim() !== ""); return v.length >= 2 && v.filter(x => isNaN(parseNum(x))).length >= v.length * 0.6; });
+  let h = rows.slice(0, 15).findIndex(r => { const v = r.filter(x => !isBlank(x)); return v.length >= 2 && v.filter(x => isNaN(parseNum(x))).length >= v.length * 0.6; });
   if (h < 0) h = 0;
   const seen = {}, header = (rows[h] || []).map((x, i) => { let n = String(x).trim() || "Column " + (i + 1); if (seen[n]) n += " (" + (++seen[n]) + ")"; else seen[n] = 1; return n; });
-  const data = rows.slice(h + 1).filter(r => r.some(x => String(x).trim() !== ""));
-  const numeric = header.map((_, i) => { const v = data.map(r => r[i]).filter(x => String(x ?? "").trim() !== ""); return v.length > 0 && v.filter(x => !isNaN(parseNum(x))).length >= v.length * 0.6; });
-  return { header, data, numeric, sheetName: sh?.name };
+  const body = rows.slice(h + 1), dropped = [];
+  let end = body.length, started = false;
+  for (let i = 0; i < body.length; i++) { const e = body[i].every(isBlank); if (!e) started = true; else if (started) { end = i; break; } }
+  body.slice(end).forEach(r => { if (!r.every(isBlank)) dropped.push({ why: "setup", r }); });
+  let data = body.slice(0, end).filter(r => !r.every(isBlank));
+  const filled = r => r.filter(x => !isBlank(x)).length;
+  if (header.length >= 4) data = data.filter(r => { const lab = filled(r) <= 2 && r.every(x => isBlank(x) || isNaN(parseNum(x))); if (lab) dropped.push({ why: "setup", r }); return !lab; });
+  const numericOf = d => header.map((_, i) => { const v = d.map(r => r[i]).filter(x => !isBlank(x)); return v.length > 0 && v.filter(x => !isNaN(parseNum(x))).length >= v.length * 0.6; });
+  let numeric = numericOf(data);
+  if (!f.keepAuto) {
+    const dims = header.map((n, i) => !numeric[i] || /(^|\W)id(\W|$)/i.test(n)).map((d, i) => d ? i : -1).filter(i => i > -1);
+    data = data.filter(r => {
+      const first = String(r.find(x => !isBlank(x)) ?? "").trim();
+      const tot = /^(grand\s+)?totals?\b/i.test(first) || (dims.length && dims.length < header.length && dims.every(i => isBlank(r[i])) && r.some((x, i) => !dims.includes(i) && !isBlank(x)));
+      if (tot) dropped.push({ why: "total", r }); return !tot;
+    });
+  } else { data = data.concat(dropped.filter(x => x.why === "setup" && filled(x.r) > 2).map(x => x.r)); }
+  (f.excl || []).forEach(x => { const i = header.indexOf(x.col); if (i < 0) return;
+    data = data.filter(r => { const v = String(r[i] ?? "").trim().toLowerCase(), t = String(x.val || "").trim().toLowerCase();
+      const hit = x.op === "blank" ? v === "" : x.op === "equals" ? v === t : t !== "" && v.includes(t);
+      if (hit) dropped.push({ why: "manual", r }); return !hit; }); });
+  numeric = numericOf(data);
+  return { header, data, numeric, sheetName: sh?.name, dropped: f.keepAuto ? dropped.filter(x => x.why === "manual") : dropped };
 }
 const AGGS = { "": "—", sum: "Sum", avg: "Average", min: "Min", max: "Max", last: "Last value" };
 function aggOf(vals, how) {
@@ -398,6 +431,7 @@ function computeFile(f) {
     return o;
   };
   const out = { sheet: T.sheetName, rows_used: T.data.length, total: metrics(T.data) };
+  if (T.dropped.length) out.rows_excluded = `${T.dropped.length} report set-up / total / filtered rows left out`;
   const si = ix(f.split);
   if (si > -1) {
     const g = {}; T.data.forEach(r => { const k = String(r[si] ?? "").trim() || "(blank)"; (g[k] ||= []).push(r); });
@@ -408,10 +442,12 @@ function computeFile(f) {
   return out;
 }
 function rawText(f) {
-  const t = f.sheets.map(x => `## Sheet: ${x.name}\n` + x.rows.map(r => r.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(",")).join("\n")).join("\n\n");
+  const csv = r => r.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(",");
+  // cleaned tables (no total / report set-up rows) so the raw fallback doesn't double the figures either
+  const t = f.sheets.map(x => { const T = tableOf(f, x); return `## Sheet: ${x.name}\n` + [T.header, ...T.data].map(csv).join("\n"); }).join("\n\n");
   return t.length > RAW_MAX ? t.slice(0, RAW_MAX) + `\n[file truncated: only the first ${RAW_MAX} characters are shown]` : t;
 }
-function tplData(f) { const T = tableOf(f); return { name: f.tpl.trim(), sheetName: T.sheetName, cols: Object.fromEntries(Object.entries(f.cols).filter(([, a]) => a)), split: f.split, ratios: f.ratios.filter(r => r.name && r.num && r.den), note: f.note, ts: Date.now() }; }
+function tplData(f) { const T = tableOf(f); return { name: f.tpl.trim(), sheetName: T.sheetName, cols: Object.fromEntries(Object.entries(f.cols).filter(([, a]) => a)), split: f.split, ratios: f.ratios.filter(r => r.name && r.num && r.den), note: f.note, excl: (f.excl || []).filter(x => x.col), keepAuto: !!f.keepAuto, ts: Date.now() }; }
 const tplNeeds = t => [...Object.keys(t.cols || {}), ...(t.ratios || []).flatMap(r => [r.num, r.den]), ...(t.split ? [t.split] : [])];
 // best saved template whose columns all exist in one of the file's sheets
 function matchTemplate(f) {
@@ -424,7 +460,7 @@ function matchTemplate(f) {
 }
 function applyTemplate(f, t) {
   if (t._sheet != null) f.sheet = t._sheet; else { const i = f.sheets.findIndex(x => x.name === t.sheetName); if (i > -1) f.sheet = i; }
-  f.cols = { ...(t.cols || {}) }; f.split = t.split || ""; f.ratios = (t.ratios || []).map(r => ({ ...r })); f.note = t.note || ""; f.tpl = t.name;
+  f.cols = { ...(t.cols || {}) }; f.split = t.split || ""; f.ratios = (t.ratios || []).map(r => ({ ...r })); f.note = t.note || ""; f.tpl = t.name; f.excl = (t.excl || []).map(x => ({ ...x })); f.keepAuto = !!t.keepAuto;
 }
 let tplCol = null;
 const tplId = n => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "template";
@@ -475,7 +511,7 @@ function renderCfg() {
     const rows = [{ "": "Total", ...res.total }, ...(res.groups || []).slice(0, 10).map(g => { const { rows: _, ...m } = g; const k = m[res.split_by]; delete m[res.split_by]; return { "": k, ...m }; })];
     const ks = Object.keys(rows[0]);
     return `<div class="fprev"><table><tr>${ks.map(k => `<th>${esc(k)}</th>`).join("")}</tr>${rows.map(r => `<tr>${ks.map(k => `<td>${esc(r[k] == null ? "—" : typeof r[k] === "number" ? fmtN(r[k]) : r[k])}</td>`).join("")}</tr>`).join("")}</table></div>
-      <div class="muted" style="margin-top:6px">Computed from ${res.rows_used} rows${res.groups ? ` · ${res.groups.length} groups shown to Claude${res.groups_note ? " (" + esc(res.groups_note) + ")" : ""}` : ""}.</div>`; })()
+      <div class="muted" style="margin-top:6px">Computed from ${res.rows_used} rows${res.groups ? ` · ${res.groups.length} group${res.groups.length > 1 ? "s" : ""} shown to Claude${res.groups_note ? " (" + esc(res.groups_note) + ")" : ""}` : ""}.</div>`; })()
     : `<div class="muted">Nothing picked yet — Claude would get the raw file${big ? ` and <b style="color:#000">it is too big: it would be cut at ${RAW_MAX.toLocaleString("en-US").replace(/,/g, " ")} characters</b>` : ""}.</div>`;
   document.body.insertAdjacentHTML("beforeend", `<div class="fmodal" id="fmodal"><div class="fbox" role="dialog" aria-label="Set up the file">
     <div class="fhead">
@@ -488,21 +524,32 @@ function renderCfg() {
     </div>
     <div class="fbody">
       <div>
-        <div class="fsec"><div class="fstep">1 · Columns and calculation</div><div class="muted">For each column you need, choose how to combine its rows. Leave the others on “—”.</div>
+        <div class="fsec"><div class="fstep">1 · Rows to use</div>
+          <div class="muted">Report set-up lines (Report Time, Date Range, Filters…) and total rows are taken out automatically, so the sums aren't doubled.</div>
+          <div class="frows"><b>${T.data.length}</b> rows used${(() => { const c = w => T.dropped.filter(x => x.why === w).length, parts = [];
+            if (c("total")) parts.push(`${c("total")} total row${c("total") > 1 ? "s" : ""}`); if (c("setup")) parts.push(`${c("setup")} report set-up line${c("setup") > 1 ? "s" : ""}`); if (c("manual")) parts.push(`${c("manual")} by your filters`);
+            return parts.length ? ` · excluded: ${parts.join(", ")}` : ""; })()}
+            ${T.dropped.length ? `<details><summary>See excluded rows</summary><div class="fdrop">${T.dropped.slice(0, 40).map(x => `<div><i>${x.why === "total" ? "total" : x.why === "setup" ? "set-up" : "filter"}</i>${esc(x.r.filter(c => !isBlank(c)).slice(0, 4).join(" · ").slice(0, 140))}</div>`).join("")}${T.dropped.length > 40 ? `<div class="muted">…and ${T.dropped.length - 40} more</div>` : ""}</div></details>` : ""}
+            <label class="fkeep"><input type="checkbox" class="f-keep" ${f.keepAuto ? "checked" : ""}> Don't exclude anything automatically</label>
+          </div>
+          ${(f.excl || []).map((x, i) => `<div class="fex" data-i="${i}">Exclude rows where <select class="f-ecol">${opt(T.header, x.col, "column…")}</select><select class="f-eop"><option value="contains" ${x.op === "contains" ? "selected" : ""}>contains</option><option value="equals" ${x.op === "equals" ? "selected" : ""}>is</option><option value="blank" ${x.op === "blank" ? "selected" : ""}>is empty</option></select>${x.op === "blank" ? "" : `<input type="text" class="f-eval" value="${esc(x.val || "")}" placeholder="text">`}<button class="x f-edel" title="Remove">×</button></div>`).join("")}
+          <button class="mini f-eadd">+ Exclude rows where…</button>
+        </div>
+        <div class="fsec"><div class="fstep">2 · Columns and calculation</div><div class="muted">For each column you need, choose how to combine its rows. Leave the others on “—”.</div>
           <div class="fcols">${num.length ? num.map(n => `<div class="fcol ${f.cols[n] ? "on" : ""}"><div class="nm">${esc(n)}<span class="ex">${esc(sample(T.header.indexOf(n)))}</span></div>
             <div class="seg" data-c="${esc(n)}">${Object.entries(AGGS).map(([k, l]) => `<button data-a="${k}" class="${(f.cols[n] || "") === k ? "on" : ""}">${k === "last" ? "Last" : k === "avg" ? "Avg" : l}</button>`).join("")}</div></div>`).join("")
             : `<div class="fcol muted">No numeric column found in this sheet.</div>`}</div>
-          ${txt.length ? `<div class="muted" style="margin-top:6px">Text columns (usable in step 3): ${txt.map(esc).join(", ")}</div>` : ""}
+          ${txt.length ? `<div class="muted" style="margin-top:6px">Text columns (usable in step 4): ${txt.map(esc).join(", ")}</div>` : ""}
         </div>
       </div>
       <div>
-        <div class="fsec"><div class="fstep">2 · Ratios</div><div class="muted">Sum of one column ÷ sum of another — the right way to get a rate over many rows.</div>
+        <div class="fsec"><div class="fstep">3 · Ratios</div><div class="muted">Sum of one column ÷ sum of another — the right way to get a rate over many rows.</div>
           ${f.ratios.map((r, i) => `<div class="frt" data-i="${i}"><input type="text" class="f-rn" placeholder="Name (e.g. CTR)" value="${esc(r.name)}"><select class="f-rnum">${opt(num, r.num, "Numerator…")}</select><span class="op">÷</span><select class="f-rden">${opt(num, r.den, "Denominator…")}</select><label title="Multiply by 100"><input type="checkbox" class="f-rpct" ${r.pct ? "checked" : ""}> in %</label><button class="x f-rdel" title="Remove">×</button></div>`).join("")}
           <div style="display:flex;gap:6px;flex-wrap:wrap">${sug.map((r, i) => `<button class="mini sug f-sug" data-i="${i}" title="${esc(r.num)} ÷ ${esc(r.den)}">+ ${esc(r.name)} <small>suggested</small></button>`).join("")}<button class="mini f-radd">+ Custom ratio</button></div>
         </div>
-        <div class="fsec"><div class="fstep">3 · Split by (optional)</div><div class="muted">One line per value, e.g. per placement, site or date.</div>
+        <div class="fsec"><div class="fstep">4 · Split by (optional)</div><div class="muted">One line per value, e.g. per placement, site or date.</div>
           <select class="f-split">${opt(txt, f.split, "No split — total only")}</select></div>
-        <div class="fsec"><div class="fstep">4 · How to read it</div><div class="muted">Sent to Claude with the figures.</div>
+        <div class="fsec"><div class="fstep">5 · How to read it</div><div class="muted">Sent to Claude with the figures.</div>
           <textarea class="f-note" rows="3" placeholder="e.g. Brand lift = uplift vs control group; only quote significant results">${esc(f.note)}</textarea></div>
         <div class="fsec"><div class="fstep">What Claude will get</div>${prev}</div>
       </div>
@@ -524,6 +571,11 @@ function renderCfg() {
   p.querySelectorAll(".f-sug").forEach(b => b.onclick = () => { f.ratios.push({ ...sug[+b.dataset.i] }); re(); });
   q(".f-radd").onclick = () => { f.ratios.push({ name: "", num: "", den: "", pct: true }); re(); };
   q(".f-split").onchange = e => { f.split = e.target.value; re(); };
+  q(".f-keep").onchange = e => { f.keepAuto = e.target.checked; re(); };
+  q(".f-eadd").onclick = () => { (f.excl ||= []).push({ col: "", op: "contains", val: "" }); re(); };
+  p.querySelectorAll(".fex").forEach(row => { const x = f.excl[+row.dataset.i], g = sel => row.querySelector(sel);
+    g(".f-ecol").onchange = e => { x.col = e.target.value; re(); }; g(".f-eop").onchange = e => { x.op = e.target.value; re(); };
+    g(".f-eval") && (g(".f-eval").onchange = e => { x.val = e.target.value; re(); }); g(".f-edel").onclick = () => { f.excl.splice(+row.dataset.i, 1); re(); }; });
   q(".f-note").oninput = e => { f.note = e.target.value; };
 }
 const fmtN = n => Math.abs(n) >= 1000 ? Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : +n.toFixed(2);
