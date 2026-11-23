@@ -23,6 +23,13 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 .hl{display:flex;align-items:center;gap:14px}
 .empty .crew{display:flex;justify-content:center;gap:4px;margin-bottom:14px}
 .empty .crew .av{width:92px}
+.check{display:flex;align-items:flex-end;gap:10px;margin:14px 0 4px}
+.check .av{width:80px;animation:pop .45s ease-out both}
+.check .bubble{position:relative;background:var(--cream);border:1.5px solid #000;border-radius:16px;padding:10px 14px;font-size:13.5px;max-width:420px;margin-bottom:44px;animation:pop .45s .15s ease-out both}
+.check .bubble::before{content:"";position:absolute;left:-9px;bottom:12px;width:14px;height:14px;background:var(--cream);border-left:1.5px solid #000;border-bottom:1.5px solid #000;transform:rotate(45deg)}
+.check .bubble b{color:#000}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.check .av,.check .bubble{animation:none}}
 .writing{display:flex;align-items:center;gap:14px;padding:20px 0}
 .writing .team .av.head{animation:hop 1.2s ease-in-out infinite}
 .writing .team .av.head:nth-child(2){animation-delay:.15s}.writing .team .av.head:nth-child(3){animation-delay:.3s}.writing .team .av.head:nth-child(4){animation-delay:.45s}
@@ -1090,6 +1097,7 @@ function renderFeedbackCard(loading) {
     ${H ? "" : `<div class="tone">${["Factual", "Short", "Detailed"].map(t => `<span class="${t === state.tone ? "on" : ""}" data-t="${t}">${t}</span>`).join("")}</div>`}
     ${!loading && !state.editing && state.feedback ? `<div class="hint">Tip: select a passage you don't like to tell Claude what's wrong.</div>` : ""}
     ${loading ? `<div class="muted writing"><div class="team" aria-hidden="true"><div class="av head a1"></div><div class="av head a2"></div><div class="av head a3"></div><div class="av head a4"></div></div>Writing the feedback…</div>` : (state.editing ? `<textarea id="fbText"></textarea>` : `<div class="fbview" id="fbView"></div>`)}
+    ${!loading && state.feedback ? `<div class="check" role="note"><div class="av a2" aria-hidden="true"></div><div class="bubble"><b>¡Ojo!</b> Revisa bien las cifras y la información antes de enviarlo. Claude puede equivocarse.</div></div>` : ""}
     <div class="actions">
       <div class="tickets">${tickets ? "Post on: " + tickets : ""}</div>
       <button class="btn sec" id="learn" ${state.generated && state.feedback.trim() !== state.generated.trim() ? "" : "disabled"} title="Compare my version with the generated one and propose style rules">Learn from my edits</button>
