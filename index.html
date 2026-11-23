@@ -30,6 +30,17 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 .check .bubble b{color:#000}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.check .av,.check .bubble{animation:none}}
+/* loader: the team passes a little chart to each other while the data loads */
+.relay{position:relative;display:grid;grid-template-columns:repeat(4,1fr);width:min(420px,100%);margin:28px auto 16px;justify-items:center}
+.relay .av{width:78px;animation:hop2 2.8s ease-in-out infinite}
+.relay .av.a2{animation-delay:.7s}.relay .av.a3{animation-delay:1.4s}.relay .av.a4{animation-delay:2.1s}
+@keyframes hop2{0%,14%,100%{transform:translateY(0)}6%{transform:translateY(-9px) rotate(-3deg)}}
+.relay .pkt{position:absolute;top:-6px;left:12.5%;display:flex;align-items:flex-end;gap:2px;padding:4px 5px;background:#fff;border:1.5px solid #000;border-radius:6px;transform:translateX(-50%);animation:pass 2.8s linear infinite,arc .7s ease-in-out infinite}
+.relay .pkt i{display:block;width:4px;background:var(--coral);border-radius:1px}
+.relay .pkt i:nth-child(1){height:6px}.relay .pkt i:nth-child(2){height:11px;background:#000}.relay .pkt i:nth-child(3){height:15px}
+@keyframes pass{0%{left:12.5%;opacity:0}4%{opacity:1}25%{left:37.5%}50%{left:62.5%}75%{left:87.5%}92%{left:87.5%;opacity:1}100%{left:87.5%;opacity:0}}
+@keyframes arc{0%,100%{margin-top:0}50%{margin-top:-30px}}
+@media(prefers-reduced-motion:reduce){.relay .av,.relay .pkt{animation:none}.relay .pkt{left:50%}}
 .writing{display:flex;align-items:center;gap:14px;padding:20px 0}
 .writing .team .av.head{animation:hop 1.2s ease-in-out infinite}
 .writing .team .av.head:nth-child(2){animation-delay:.15s}.writing .team .av.head:nth-child(3){animation-delay:.3s}.writing .team .av.head:nth-child(4){animation-delay:.45s}
@@ -1811,7 +1822,7 @@ async function run(opts = {}) {
   if (!state.crms.length) { note("Add at least one CRM ID.", "err"); return; }
   const btn = $("#go"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Reading BigQuery & Jira…`;
   state.histId = null; state.feedback = ""; state.draftId = null; state.histBase = null;
-  $("#main").innerHTML = `<div class="card empty"><span class="spin dk"></span>Fetching data for ${state.crms.map(esc).join(", ")}…</div>`;
+  $("#main").innerHTML = `<div class="card empty"><div class="relay" aria-hidden="true"><div class="av a1"></div><div class="av a2"></div><div class="av a3"></div><div class="av a4"></div><div class="pkt"><i></i><i></i><i></i></div></div><span class="spin dk"></span>Fetching data for ${state.crms.map(esc).join(", ")}…</div>`;
   try {
     const ids = [...state.crms];
     // Each source can fail on its own: collect the warnings and keep going with what answered (shown once the results are rendered).

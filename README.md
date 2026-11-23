@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-23**
+- "Fetching data for…" loader: the four team avatars pass a small chart to each other, each one hopping as it catches it (static with reduced motion).
 - Buttons: lift on hover, press on click, clear keyboard focus ring, shimmer while a button is working (Generate, PDF, Fix…), small pop on "Copied ✓"; tabs, tone pills, column buttons and × also react on hover. All motion off with reduced motion.
 - Under each generated feedback, a team avatar with a speech bubble in Spanish reminds to double-check the figures before sending (not included in the PDF).
 - Design: team avatars (one embedded image sprite) in the header, on the empty state and as a hopping "Writing the feedback…" loader (static when reduced motion is on).
