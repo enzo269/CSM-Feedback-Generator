@@ -46,6 +46,22 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 .writing .team .av.head:nth-child(2){animation-delay:.15s}.writing .team .av.head:nth-child(3){animation-delay:.3s}.writing .team .av.head:nth-child(4){animation-delay:.45s}
 @keyframes hop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.writing .team .av.head{animation:none}}
+/* Christmas theme (until 25/12): Santa hats, snow in the header — Seedtag palette only */
+.xm{display:none}
+body.xmas .xm{display:inline}
+body.xmas{--hat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Cpath d='M12 62 C22 30 46 10 74 16 C86 19 92 32 90 46 L82 45 C80 34 72 30 64 34 C56 40 66 54 70 62 Z' fill='%23FF6B7C' stroke='%23000' stroke-width='2.5'/%3E%3Crect x='6' y='57' width='72' height='17' rx='8.5' fill='%23fff' stroke='%23000' stroke-width='2.5'/%3E%3Ccircle cx='87' cy='50' r='9' fill='%23fff' stroke='%23000' stroke-width='2.5'/%3E%3C/svg%3E")}
+body.xmas .av{position:relative}
+body.xmas .av::after{content:"";position:absolute;background:var(--hat) no-repeat center/contain;pointer-events:none;width:58%;aspect-ratio:100/80;left:17%;top:-9%;transform:rotate(-10deg)}
+body.xmas .team .av.head{overflow:visible}
+body.xmas .team .av.head::after{width:70%;left:10%;top:-26%}
+body.xmas header{position:relative;overflow:hidden}
+.snow{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.snow i{position:absolute;top:-8px;width:6px;height:6px;border-radius:50%;background:#fff;opacity:.85;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110px) translateX(14px)}}
+body.xmas .empty em .xm{font-size:22px;color:var(--coral)}
+.xtag{font-family:'Instrument Serif',serif;font-size:18px;margin-left:4px}
+body.xmas .relay{margin-top:44px}body.xmas .relay .pkt{top:-30px}
+@media(prefers-reduced-motion:reduce){.snow{display:none}}
 header{background:var(--coral);color:#000;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:20px;font-weight:600}
 header h1 em{font-family:'Instrument Serif',serif;font-weight:400;font-size:24px}
@@ -221,7 +237,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
 </head>
 <body>
 <header>
-  <div class="hl"><div class="team" aria-hidden="true"><div class="av head a1"></div><div class="av head a2"></div><div class="av head a3"></div><div class="av head a4"></div></div><h1>CSM Feedback <em>Generator</em></h1></div>
+  <div class="hl"><div class="team" aria-hidden="true"><div class="av head a1"></div><div class="av head a2"></div><div class="av head a3"></div><div class="av head a4"></div></div><h1>CSM Feedback <em>Generator</em><span class="xm xtag">· Merry Christmas</span></h1></div>
   <nav class="tabs"><a href="#feedback" data-v="feedback">Feedback</a><a href="#drafts" data-v="drafts">Monday drafts <span id="draftBadge"></span></a><a href="#preferences" data-v="preferences">My preferences</a></nav>
 </header>
 
@@ -268,7 +284,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
   </aside>
 
   <main id="main">
-    <div class="card empty"><div class="crew" aria-hidden="true"><div class="av a1"></div><div class="av a2"></div><div class="av a3"></div><div class="av a4"></div></div><em>Ready when you are.</em>Add one or more CRM IDs, attach any extra KPI files, then hit <b>Generate feedback</b>.</div>
+    <div class="card empty"><div class="crew" aria-hidden="true"><div class="av a1"></div><div class="av a2"></div><div class="av a3"></div><div class="av a4"></div></div><em>Ready when you are.<span class="xm"> Ho ho ho.</span></em>Add one or more CRM IDs, attach any extra KPI files, then hit <b>Generate feedback</b>.</div>
   </main>
 </div></div>
 
@@ -311,6 +327,13 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
 </div></div>
 
 <script>
+// Christmas theme: from 23/11 until 25/12 included (local date)
+const XMAS = (() => { const d = new Date(), m = d.getMonth() + 1, day = d.getDate(); return (m === 11 && day >= 23) || (m === 12 && day <= 25); })();
+function setXmas(on) {
+  document.body.classList.toggle("xmas", on); document.querySelector("header .snow")?.remove();
+  if (on) document.querySelector("header").insertAdjacentHTML("afterbegin", `<div class="snow" aria-hidden="true">${Array.from({ length: 22 }, (_, i) => `<i style="left:${(i * 4.6 + (i % 3) * 1.7).toFixed(1)}%;animation-duration:${(4 + (i % 5) * 1.3).toFixed(1)}s;animation-delay:-${(i * 0.7 % 6).toFixed(1)}s;width:${3 + (i % 4) * 1.5}px;height:${3 + (i % 4) * 1.5}px"></i>`).join("")}</div>`);
+}
+setXmas(XMAS);
 const CLOUD = "f27c696c-ab8c-4c73-896e-079ad4bb1763";
 const CUBE_SRV = "business-data-cube-mcp";
 const JIRA_SRV = "Atlassian Rovo";
@@ -1132,7 +1155,7 @@ function renderFeedbackCard(loading) {
     ${H ? "" : `<div class="tone">${["Factual", "Short", "Detailed"].map(t => `<span class="${t === state.tone ? "on" : ""}" data-t="${t}">${t}</span>`).join("")}</div>`}
     ${!loading && !state.editing && state.feedback ? `<div class="hint">Tip: select a passage you don't like to tell Claude what's wrong.</div>` : ""}
     ${loading ? `<div class="muted writing"><div class="team" aria-hidden="true"><div class="av head a1"></div><div class="av head a2"></div><div class="av head a3"></div><div class="av head a4"></div></div>Writing the feedback…</div>` : (state.editing ? `<textarea id="fbText"></textarea>` : `<div class="fbview" id="fbView"></div>`)}
-    ${!loading && state.feedback ? `<div class="check" role="note"><div class="av a2" aria-hidden="true"></div><div class="bubble"><b>¡Ojo!</b> Revisa bien las cifras y la información antes de enviarlo. Claude puede equivocarse.</div></div>` : ""}
+    ${!loading && state.feedback ? `<div class="check" role="note"><div class="av a2" aria-hidden="true"></div><div class="bubble"><b>¡Ojo!</b> Revisa bien las cifras y la información antes de enviarlo. Claude puede equivocarse.<span class="xm"> ¡Y feliz Navidad!</span></div></div>` : ""}
     <div class="actions">
       <div class="tickets">${tickets ? "Post on: " + tickets : ""}</div>
       <button class="btn sec" id="learn" ${state.generated && state.feedback.trim() !== state.generated.trim() ? "" : "disabled"} title="Compare my version with the generated one and propose style rules">Learn from my edits</button>

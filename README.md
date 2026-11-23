@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-23**
+- Christmas theme, automatic from 23/11 to 25/12 (viewer's local date), off by itself on 26/12: Santa hats on every avatar, snow falling in the header, "Merry Christmas" next to the title, "Ho ho ho." on the empty state, "¡Y feliz Navidad!" in the check bubble. Seedtag palette only.
 - "Fetching data for…" loader: the four team avatars pass a small chart to each other, each one hopping as it catches it (static with reduced motion).
 - Buttons: lift on hover, press on click, clear keyboard focus ring, shimmer while a button is working (Generate, PDF, Fix…), small pop on "Copied ✓"; tabs, tone pills, column buttons and × also react on hover. All motion off with reduced motion.
 - Under each generated feedback, a team avatar with a speech bubble in Spanish reminds to double-check the figures before sending (not included in the PDF).
