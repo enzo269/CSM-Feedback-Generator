@@ -214,7 +214,11 @@ details summary{cursor:pointer;font-size:12px;color:var(--grey)}
   <div class="card">
     <h2>Approved examples</h2>
     <div class="muted" id="exCount" style="margin:-6px 0 8px"></div>
-    <div id="exList"></div>
+    <div class="addex">
+      <textarea id="newEx" rows="4" placeholder="Paste a feedback you like (yours or a colleague's) to use it as a voice model…"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center"><select id="newExMode" style="width:auto"><option value="update">Mid-flight update</option><option value="end">End-of-campaign report</option></select><button class="btn sec" id="addEx" style="width:auto;padding:6px 14px">Add as model</button></div>
+    </div>
+    <div id="exList" style="margin-top:12px"></div>
   </div>
 </div></div>
 
@@ -1109,19 +1113,21 @@ RULES
 WRITING STYLE — this is the most important part:
 - Give a REAL FEEDBACK, not a data dump. For each campaign answer: is it going well or not, why, and what does it mean (for delivery, for the client, for the end of the flight)? Every figure you quote must serve that point and be interpreted ("CTR is **0.82%**, well above the 0.60% target — the audience is responding"). Never list numbers without saying what they mean. Leave out figures that don't change the message.
 - The chosen LENGTH/TONE below changes the format a lot — follow it strictly.
-- Write like a person, not a report. Picture ${sig} typing a quick comment to a colleague he works with every day: relaxed, direct, friendly. English.
+- Write like a person, not a report. Picture yourself (${sig}) typing a quick comment to a colleague you work with every day: relaxed, direct, friendly. English.
+- VARY THE SHAPE: campaign sections must not all follow the same mould. Change how each one opens (the verdict, the key figure, what changed, the client's angle…), vary sentence length, and never start two sections — or two sentences in a row — with the same words or the same structure ("The campaign…", "CTR is…"). Factual bullets keep their format, but the conclusion sentence must still differ from one campaign to the next.
+- CONNECT THE IDEAS like someone talking: link sentences with natural connectors ("so", "that said", "on the flip side", "which means", "the good news is", "for now") instead of stacking independent statements. Don't overdo it — one or two per section.
 - Layout (paragraphs vs bullets) is set by the LENGTH/TONE below — follow it. Otherwise, prefer short paragraphs of natural sentences.
 - Don't recite every metric. Pick what matters, say what it means ("we're slightly behind, nothing worrying", "CTR is doing really well"), and move on. One idea per sentence, varied sentence length.
-- Plain words and contractions (we're, it's, didn't). Avoid stiff/AI phrasing: no "Overall,", "It's worth noting", "In summary", "I hope this finds you well", "Please don't hesitate", "Additionally", "Furthermore", "delve", "robust", "leverage", "ensure".
+- Plain words and contractions (we're, it's, didn't). NEVER use stiff/AI phrasing: "Overall", "It's worth noting", "Notably", "In summary", "To summarize", "In conclusion", "I hope this finds you well", "Please don't hesitate", "Feel free to reach out", "Let me know if you have any questions", "Additionally", "Furthermore", "Moreover", "Consequently", "delve", "robust", "leverage", "ensure", "showcase", "highlight(s)", "underscore", "testament", "remarkable", "impressive", "solid performance", "strong performance", "healthy", "on a positive note", "it is important to", "moving forward", "going forward", "in terms of", "with regard to", "a strong start", "continues to perform well", "key takeaway". No em-dash chains, no "not only… but also", no lists of three adjectives.
 - No emojis, no exclamation marks overload (one at most).
-- NO signature and no sign-off name at the end (the Jira comment already shows the author). End with a natural closing line, not a formula.
+- NO signature and no sign-off name at the end (the Jira comment already shows the author). Don't end with a recap of what you just said: end with ONE short forward-looking line — what we're watching next or when the next update comes (e.g. "We'll keep an eye on VTR this week.", "Next update on Monday."). Never a formula.
 - Greet the CSM(s) by first name (from "csm"). One consolidated message, with one section per CRM ID, headed like: **CRM_ID · short campaign name — status** (status in plain words: on track / under pacing / to watch / not started / ended).
 - Put the important figures in **bold** (pacing %, delivered vs booked, KPI actual vs target, days left, budget at risk). Don't bold everything — only the numbers that matter.
 ${mode === "update" ? `TYPE: MID-FLIGHT UPDATE — concise and factual.
 - 1 sentence overall summary, then per campaign 2–4 short lines: pacing to date and days left, KPIs vs targets (above/below and by how much), any notable trend in the focus period, anything from extra files.
 - Under pacing = delivered below the daily goal for several consecutive days (consecutive_days_below_daily_goal). State it plainly with the figure.
 - NO recommendations in a mid-flight update. Only state facts; if something needs attention, say we're keeping an eye on it.
-- End with one short line on when the next update comes.` : `TYPE: END-OF-CAMPAIGN REPORT — precise, covering the whole flight.
+- The closing line is the forward-looking one (what we're watching / next update).` : `TYPE: END-OF-CAMPAIGN REPORT — precise, covering the whole flight.
 - Opening: 1–2 sentence overall verdict.
 - Per campaign: final delivery vs booking, each KPI final vs target (above/below and by how much), how delivery and KPIs evolved over the flight (start, middle, end — use the daily data), notable highs/lows, and anything from extra files.
 - Then a final section **Recommendations for next time**: 2–3 bullets, built from these levers (use the ones the data supports, in this order of priority):
@@ -1145,9 +1151,9 @@ ${mode === "end" ? `- Include a section **Where it performed** written as exactl
 
 ${(() => {
   const rules = state.rules.filter(x => x.on !== false).map(x => "- " + x.text).join("\n");
-  const ex = [...state.examples.filter(x => x.mode === mode), ...state.examples.filter(x => x.mode !== mode)].slice(0, 3).map((x, i) => `--- Example ${i + 1} ---\n${String(x.text).slice(0, 2500)}`).join("\n\n");
+  const ex = [...state.examples.filter(x => x.manual), ...state.examples.filter(x => !x.manual && x.mode === mode), ...state.examples.filter(x => !x.manual && x.mode !== mode)].slice(0, 5).map((x, i) => `--- Example ${i + 1}${x.manual ? " (hand-picked model)" : ""} ---\n${String(x.text).slice(0, 2500)}`).join("\n\n");
   return (rules ? `\nPREFERENCES OF ${sig.toUpperCase()} (apply to EVERY feedback, whatever the type or tone; they override the rules above when they conflict)\n${rules}\n` : "")
-    + (ex ? `\nPAST FEEDBACKS ${sig.toUpperCase()} APPROVED — match their voice and style (adapt structure/length to the current feedback type), NOT their numbers\n${ex}\n` : "");
+    + (ex ? `\nVOICE REFERENCE — real feedbacks ${sig} wrote or approved. This is the voice to reproduce: copy their sentence rhythm, the way they open a section, their connectors, their vocabulary and their level of informality. When the rules above and these examples differ on style, follow the examples (structure and length still follow the current feedback type). Never reuse their numbers or campaign facts.\n${ex}\n` : "");
 })()}
 CAMPAIGN DATA (JSON)
 ${JSON.stringify(data, null, 1)}
@@ -1314,6 +1320,13 @@ ${state.feedback}`;
 }
 
 /* ---------- training (db) ---------- */
+$("#addEx").onclick = async () => {
+  const text = $("#newEx").value.trim();
+  if (text.length < 40) { note("Paste a full feedback (a few sentences at least).", "err"); return; }
+  if (!exCol) { note("Examples can't be saved in this view.", "err"); return; }
+  try { await exCol.doc("manual_" + Date.now()).set({ ts: Date.now(), mode: $("#newExMode").value, crms: [], text, manual: true }); $("#newEx").value = ""; note("Model added — it will be used for every feedback.", "ok"); }
+  catch (e) { note("Could not save: " + (e?.message || e), "err"); }
+};
 let rulesDoc = null, exCol = null;
 function initTraining(db) {
   rulesDoc = db.doc("style/rules"); exCol = db.collection("examples"); tplCol = db.collection("filetemplates");
@@ -1321,16 +1334,17 @@ function initTraining(db) {
   rulesDoc.onSnapshot(s => { const d = s?.data ? s.data() : s; state.rules = d?.rules || []; renderRules(); }, e => console.warn(e));
   exCol.orderBy("ts", "desc").limit(20).onSnapshot(s => {
     state.examples = s.docs ? s.docs.map(d => ({ id: d.id, ...(d.data ? d.data() : d) })) : (Array.isArray(s) ? s : []);
-    $("#exCount").textContent = state.examples.length ? `The 3 most recent are used as style models. Saved automatically when you post a feedback to Jira.` : "Feedbacks you post to Jira will be saved here as examples.";
+    $("#exCount").textContent = `Up to 5 are used as voice models: hand-picked models first, then the most recent of the same type. Feedbacks you post to Jira are added automatically.`;
     renderExamples();
   }, e => console.warn(e));
 }
 function renderExamples() {
   const box = $("#exList"); box.innerHTML = "";
+  const inUse = new Set([...state.examples.filter(x => x.manual), ...state.examples.filter(x => !x.manual)].slice(0, 5));
   state.examples.forEach((x, i) => {
     const d = document.createElement("div"); d.className = "ex";
     const top = document.createElement("div"); top.style.cssText = "display:flex;justify-content:space-between;gap:8px";
-    const l = document.createElement("b"); l.textContent = `${new Date(x.ts).toLocaleDateString("fr-BE")} · ${x.mode === "end" ? "end report" : "update"} · ${(x.crms || []).join(", ")}${i < 3 ? "  (in use)" : ""}`;
+    const l = document.createElement("b"); l.textContent = `${new Date(x.ts).toLocaleDateString("fr-BE")} · ${x.mode === "end" ? "end report" : "update"} · ${x.manual ? "hand-picked model" : (x.crms || []).join(", ")}${inUse.has(x) ? "  (in use)" : ""}`;
     const del = document.createElement("button"); del.textContent = "×"; del.title = "Remove this example"; del.style.cssText = "border:none;background:none;color:var(--coral);cursor:pointer;font-weight:700";
     del.onclick = async () => { try { await exCol.doc(x.id).delete(); } catch (e) { note("Could not remove: " + (e?.message || e), "err"); } };
     top.append(l, del);
