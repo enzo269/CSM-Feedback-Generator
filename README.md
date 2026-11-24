@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-24**
+- Colleagues: when someone other than the owner opens the page, the feedback is written in their name (user capability, profile scope) and history / preferences are shown as Enzo-only instead of failing. Connector errors now say what to do (connector not connected, access declined, sign in again).
 - France opened: "Browse live campaigns" now lists BNL + France (Country sold), with a Market column and an "All markets / BNL / France" filter. The benchmark is per market: BNL (Belgium + Netherlands, impression-weighted) or France, picked from the campaign's Country sold; the prompt field is now "market_benchmark". Jira lookup still only searches the BNL and PT projects.
 
 **2026-11-23**

@@ -1,24 +1,80 @@
 {
   "mcp": {
     "servers": [
-      { "server": "business-data-cube-mcp", "tools": ["run_query"] },
-      { "server": "Atlassian Rovo", "tools": ["searchJiraIssuesUsingJql", "addCommentToJiraIssue"] },
-      { "server": "Google Drive", "tools": ["search_files"] },
-      { "server": "Google Sheets", "tools": ["get_values"] },
-      { "server": "adx-data-toolbox", "tools": ["trino_query"] }
+      {
+        "server": "business-data-cube-mcp",
+        "tools": [
+          "run_query"
+        ]
+      },
+      {
+        "server": "Atlassian Rovo",
+        "tools": [
+          "searchJiraIssuesUsingJql",
+          "addCommentToJiraIssue"
+        ]
+      },
+      {
+        "server": "Google Drive",
+        "tools": [
+          "search_files"
+        ]
+      },
+      {
+        "server": "Google Sheets",
+        "tools": [
+          "get_values"
+        ]
+      },
+      {
+        "server": "adx-data-toolbox",
+        "tools": [
+          "trino_query"
+        ]
+      }
     ]
   },
-  "sample": { "images": true },
+  "sample": {
+    "images": true
+  },
   "downloads": true,
   "db": {
     "rules": [
-      { "path": "feedbacks", "read": "owner", "write": "owner" },
-      { "path": "examples",  "read": "owner", "write": "owner" },
-      { "path": "style",     "read": "owner", "write": "owner" },
-      { "path": "drafts",    "read": "owner", "write": "owner" },
-      { "path": "config",    "read": "owner", "write": "owner" },
-      { "path": "filetemplates", "read": "owner", "write": "owner" }
+      {
+        "path": "feedbacks",
+        "read": "owner",
+        "write": "owner"
+      },
+      {
+        "path": "examples",
+        "read": "owner",
+        "write": "owner"
+      },
+      {
+        "path": "style",
+        "read": "owner",
+        "write": "owner"
+      },
+      {
+        "path": "drafts",
+        "read": "owner",
+        "write": "owner"
+      },
+      {
+        "path": "config",
+        "read": "owner",
+        "write": "owner"
+      },
+      {
+        "path": "filetemplates",
+        "read": "owner",
+        "write": "owner"
+      }
     ]
   },
-  "user": {}
+  "user": {
+    "scopes": [
+      "profile"
+    ]
+  }
 }

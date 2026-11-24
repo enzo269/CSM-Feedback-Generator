@@ -317,7 +317,7 @@ const JIRA_SRV = "Atlassian Rovo";
 const DRIVE_SRV = "Google Drive";
 const SHEETS_SRV = "Google Sheets";
 const ADX_SRV = "adx-data-toolbox";
-const AUTHOR = "Enzo"; // the ops lead the feedback is written as (no signature is added: Jira shows the author)
+let AUTHOR = "Enzo", ROLE = "Operations Market Lead BNL (Belgium + Netherlands)", IS_OWNER = true; // the ops lead the feedback is written as (no signature is added: Jira shows the author)
 const P = "direct_product_line_delivery_tz.";
 const state = { crms: [], files: [], results: null, feedback: "", tone: (() => { try { return localStorage.getItem("csm_tone_v2") || "Factual"; } catch { return "Factual"; } })(), histId: null, editing: false, generated: "", rules: [], examples: [], templates: [] };
 const $ = s => document.querySelector(s);
@@ -341,6 +341,23 @@ let mcpP = null, sampleP = null, dbP = null, userP = null;
 const cap = n => { try { return window.claude?.use ? window.claude.use(n) : Promise.resolve(null); } catch { return Promise.resolve(null); } };
 function caps() {
   mcpP ??= cap("mcp"); sampleP ??= cap("sample"); dbP ??= cap("db"); userP ??= cap("user");
+}
+// a colleague opening Enzo's page writes as themself, and their data isn't mixed with Enzo's (the DB is owner-only)
+const whoP = (async () => {
+  caps(); const u = await userP; if (!u) return;
+  try { IS_OWNER = !!(await u.isOwner()); } catch {}
+  if (IS_OWNER) return;
+  try { const me = await u.me(); const first = String(me?.name || "").trim().split(/\s+/)[0]; if (first) AUTHOR = first; } catch {}
+  ROLE = "from the Seedtag Operations team";
+  document.body.classList.add("guest");
+})();
+// turn connector errors into something a colleague can act on
+function connHint(server, e) {
+  const c = String(e?.code || e?.message || "");
+  if (/server_not_connected|not_connected|no.*connect/i.test(c)) return ` — the “${server}” connector isn't connected on your claude.ai account. Add it in claude.ai → Settings → Connectors, then reload this page.`;
+  if (/not_granted|denied|declin|consent/i.test(c)) return ` — access to “${server}” was declined. Open this page's Permissions menu (top right) and allow it, then reload.`;
+  if (/unauthori|401|403|auth/i.test(c)) return ` — your “${server}” connector needs to be reconnected (sign in again in claude.ai → Settings → Connectors).`;
+  return "";
 }
 
 /* unwrap any MCP payload into JS data */
@@ -369,7 +386,7 @@ async function call(server, tool, input) {
     const r = await mcp.callTool(server, tool, input);
     return unwrap(r && "payload" in r ? r.payload : r);
   } catch (e) {
-    throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}`);
+    throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}${connHint(server, e)}`);
   }
 }
 
@@ -1303,7 +1320,7 @@ function buildPrompt() {
     "Factual": `FACTUAL — neutral, scannable, no storytelling and no adjectives. Per campaign, a "- " bullet per key metric (the ones that matter, not all of them) in the form "Metric: value vs target → verdict" (verdict = on track / above target / below target / behind / expected). Then one plain sentence with the conclusion. No greeting fluff beyond "Hi <name>,".`
   }[state.tone] || "";
   const sig = AUTHOR;
-  return `You are ${sig}, Operations Market Lead BNL (Belgium + Netherlands) at Seedtag. Write a campaign status feedback for the CSM(s), to be posted as a comment in Jira.
+  return `You are ${sig}, ${ROLE} at Seedtag. Write a campaign status feedback for the CSM(s), to be posted as a comment in Jira.
 
 RULES
 WRITING STYLE — this is the most important part:
@@ -1680,7 +1697,8 @@ async function markDraftPosted(keys) {
 let histCol = null;
 async function initHistory() {
   caps();
-  const db = await dbP;
+  const db = await dbP; await whoP;
+  if (db && !IS_OWNER) { $("#hist").innerHTML = `<div class="muted">History and preferences are saved for ${esc("Enzo")} only — your feedbacks work, they just aren't kept here.</div>`; return; }
   if (!db) { $("#hist").innerHTML = `<div class="muted">History unavailable in this view (open the artifact on claude.ai, signed in).</div>`; return; }
   try {
     initTraining(db); initDrafts(db);
