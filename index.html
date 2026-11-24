@@ -366,14 +366,17 @@ function unwrap(p) {
   if (typeof p === "string") {
     try { return unwrap(JSON.parse(p)); } catch {}
     // UTC cubes (e.g. buying_engine_deliveries_utc) append a note after the JSON ("\n\nTimezone: dates are UTC…"): keep the JSON part
-    const t = p.trim(), open = t[0], close = open === "[" ? "]" : open === "{" ? "}" : null;
-    if (close) { try { return unwrap(JSON.parse(t.slice(0, t.lastIndexOf(close) + 1))); } catch {} }
+    // text around the JSON (a note before or after it): keep the JSON part
+    const t = p.trim(), i = t.search(/[\[{]/), open = i > -1 ? t[i] : null, close = open === "[" ? "]" : open === "{" ? "}" : null;
+    if (close) { try { return unwrap(JSON.parse(t.slice(i, t.lastIndexOf(close) + 1))); } catch {} }
     return p;
   }
   if (Array.isArray(p) && p.length && p[0] && p[0].type === "text") return unwrap(p.map(x => x.text).join(""));
   if (typeof p === "object") {
     if (Array.isArray(p.content) && p.content[0]?.type === "text") return unwrap(p.content.map(x => x.text).join(""));
-    if (typeof p.result === "string" && Object.keys(p).length <= 2) return unwrap(p.result);
+    // connector wrappers: {result: "<json>", …extra fields}, {rows: "<json>"} — whatever else rides along
+    if (p.result != null && !("rows" in p)) { const r = unwrap(p.result); if (Array.isArray(r) || (r && typeof r === "object")) return r; }
+    if (typeof p.rows === "string") { const r = unwrap(p.rows); if (Array.isArray(r)) return { ...p, rows: r }; }
     if (p.structuredContent) return unwrap(p.structuredContent);
   }
   return p;
@@ -385,9 +388,13 @@ async function call(server, tool, input) {
   try {
     const r = await mcp.callTool(server, tool, input);
     const out = unwrap(r && "payload" in r ? r.payload : r);
+    if (tool === "run_query") console.debug("cube answer", { raw: r, rows: Array.isArray(out) ? out.length : out });
     // a cube answer that isn't rows (access message, error text…) must not look like "no data"
     if (tool === "run_query" && out != null && !Array.isArray(out) && !Array.isArray(out.rows) && !Array.isArray(out.data))
       throw { message: "unexpected answer: " + (typeof out === "string" ? out : JSON.stringify(out)).slice(0, 300) };
+    // rows keyed "cube.member" (instead of "cube__member") are normalised so the rest of the page reads them the same way
+    const norm = rows => rows.map(x => { if (!x || typeof x !== "object") return x; const o = {}; for (const k in x) o[/^[a-z0-9_]+\.[a-z0-9_.]+$/i.test(k) ? k.replace(".", "__") : k] = x[k]; return o; });
+    if (tool === "run_query") { if (Array.isArray(out)) return norm(out); if (Array.isArray(out.rows)) return { ...out, rows: norm(out.rows) }; if (Array.isArray(out.data)) return { ...out, data: norm(out.data) }; }
     return out;
   } catch (e) {
     throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}${connHint(server, e)}`);
