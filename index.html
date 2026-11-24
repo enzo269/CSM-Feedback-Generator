@@ -381,6 +381,7 @@ function unwrap(p) {
   }
   return p;
 }
+const cubeLog = []; // last BigQuery answers, shown on "no data" cards to diagnose
 async function call(server, tool, input) {
   caps();
   const mcp = await mcpP;
@@ -388,7 +389,10 @@ async function call(server, tool, input) {
   try {
     const r = await mcp.callTool(server, tool, input);
     const out = unwrap(r && "payload" in r ? r.payload : r);
-    if (tool === "run_query") console.debug("cube answer", { raw: r, rows: Array.isArray(out) ? out.length : out });
+    if (tool === "run_query") { console.debug("cube answer", { raw: r, rows: Array.isArray(out) ? out.length : out });
+      const cube = String(input?.query?.measures?.[0] || input?.query?.dimensions?.[0] || "").split(".")[0];
+      let raw; try { raw = JSON.stringify(r); } catch { raw = String(r); }
+      cubeLog.push({ cube, filters: JSON.stringify(input?.query?.filters || []).slice(0, 160), rows: Array.isArray(out) ? out.length : Array.isArray(out?.rows) ? out.rows.length : "?", raw: raw.slice(0, 600) }); if (cubeLog.length > 12) cubeLog.shift(); }
     // a cube answer that isn't rows (access message, error text…) must not look like "no data"
     if (tool === "run_query" && out != null && !Array.isArray(out) && !Array.isArray(out.rows) && !Array.isArray(out.data))
       throw { message: "unexpected answer: " + (typeof out === "string" ? out : JSON.stringify(out)).slice(0, 300) };
@@ -1128,7 +1132,7 @@ function renderResults() {
     <div class="kpi"><div class="v">${avgFlight == null ? "—" : Math.round(avgFlight) + "%"}</div><div class="l">Flight elapsed (avg.)</div></div></div>`);
   R.forEach(r => {
     if (r.missing) {
-      main.insertAdjacentHTML("beforeend", `<div class="card"><div class="crm-head"><div><h3>${esc(r.id)}</h3><p>${r.cubeDown ? "BigQuery could not be reached, so no delivery data for this CRM ID — try again in a moment" : "No delivery data found in BigQuery for this CRM ID (direct or PMP)"}${r.jira ? ` · Jira <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a>` : ""}.</p></div><span class="pill s-na">${r.cubeDown ? "BIGQUERY DOWN" : "NO DATA"}</span></div></div>`);
+      main.insertAdjacentHTML("beforeend", `<div class="card"><div class="crm-head"><div><h3>${esc(r.id)}</h3><p>${r.cubeDown ? "BigQuery could not be reached, so no delivery data for this CRM ID — try again in a moment" : "No delivery data found in BigQuery for this CRM ID (direct or PMP)"}${r.jira ? ` · Jira <a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a>` : ""}.</p></div><span class="pill s-na">${r.cubeDown ? "BIGQUERY DOWN" : "NO DATA"}</span></div>${!r.cubeDown && cubeLog.length ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer">What BigQuery answered (for debugging)</summary><div style="font:11px/1.45 ui-monospace,monospace;background:var(--cream);border-radius:8px;padding:8px 10px;margin-top:6px;white-space:pre-wrap;word-break:break-all;user-select:all">${cubeLog.map(x => esc(`${x.cube} · rows read: ${x.rows}\nfilters: ${x.filters}\nraw: ${x.raw}`)).join("\n\n")}</div></details>` : ""}</div>`);
       return;
     }
     const L = r.last;
@@ -1865,7 +1869,7 @@ async function run(opts = {}) {
     const ids = [...state.crms];
     // Each source can fail on its own: collect the warnings and keep going with what answered (shown once the results are rendered).
     const warns = [], warn = (m, t = "err") => warns.push([m, t]);
-    let cubeDown = false;
+    let cubeDown = false; cubeLog.length = 0;
     const [rows, jira] = await Promise.all([
       fetchCube(ids).catch(e => { cubeDown = true; warn("BigQuery (direct): " + e.message); return []; }),
       fetchJira(ids).catch(e => { warn("Jira: " + e.message); return {}; })
