@@ -697,16 +697,24 @@ async function fetchCube(ids) {
 }
 // BNL benchmark per format: impression-weighted CTR / VTR / viewability of all BNL direct campaigns over the last BENCH_DAYS days (one query, cached for the session)
 let benchP = null;
+// markets covered: BNL (Belgium + Netherlands) and France
+const COUNTRIES = ["Belgium", "Netherlands", "France"];
+const marketOf = c => c === "France" ? "France" : "BNL";
 function fetchBench() {
   benchP ??= call(CUBE_SRV, "run_query", { query: {
-    dimensions: [P + "product"], measures: ["impressions", "ctr", "vtr", "vw"].map(m => P + m),
+    dimensions: [P + "product", P + "country_sold"], measures: ["impressions", "ctr", "vtr", "vw"].map(m => P + m),
     timeDimensions: [{ dimension: P + "dt", dateRange: [isoDaysAgo(BENCH_DAYS), isoDaysAgo(1)] }],
-    filters: [{ member: P + "country_sold", operator: "equals", values: ["Belgium", "Netherlands"] }], limit: 200 } })
+    filters: [{ member: P + "country_sold", operator: "equals", values: COUNTRIES }], limit: 500 } })
     .then(rows => {
       if (rows && !Array.isArray(rows)) rows = rows.rows || rows.data || [];
       const o = {}, g = (x, k) => x["direct_product_line_delivery_tz__" + k];
-      (rows || []).forEach(x => { const n = +g(x, "impressions") || 0; if (g(x, "product") && n >= BENCH_MIN_IMPS)
-        o[g(x, "product")] = { impressions: n, ctr_pct: g(x, "ctr") == null ? null : +(+g(x, "ctr")).toFixed(2), vtr_pct: g(x, "vtr") == null ? null : +(+g(x, "vtr")).toFixed(1), viewability_pct: g(x, "vw") ? +(+g(x, "vw")).toFixed(1) : null }; });
+      // Belgium + Netherlands are merged into BNL, impression-weighted
+      const acc = {};
+      (rows || []).forEach(x => { const n = +g(x, "impressions") || 0, pr = g(x, "product"); if (!pr || !n) return;
+        const a = ((acc[marketOf(g(x, "country_sold"))] ||= {})[pr] ||= { n: 0, ctr: 0, nc: 0, vtr: 0, nv: 0, vw: 0, nw: 0 }); a.n += n;
+        if (g(x, "ctr") != null) { a.ctr += +g(x, "ctr") * n; a.nc += n; } if (g(x, "vtr") != null) { a.vtr += +g(x, "vtr") * n; a.nv += n; } if (g(x, "vw")) { a.vw += +g(x, "vw") * n; a.nw += n; } });
+      for (const m in acc) { o[m] = {}; for (const pr in acc[m]) { const a = acc[m][pr]; if (a.n < BENCH_MIN_IMPS) continue;
+        o[m][pr] = { impressions: a.n, ctr_pct: a.nc ? +(a.ctr / a.nc).toFixed(2) : null, vtr_pct: a.nv ? +(a.vtr / a.nv).toFixed(1) : null, viewability_pct: a.nw ? +(a.vw / a.nw).toFixed(1) : null }; } }
       return o;
     })
     .catch(e => { benchP = null; throw e; });
@@ -1116,7 +1124,7 @@ function renderResults() {
       ${sinceBlock(r)}
       ${insightsBlock(r)}
       ${chartSVG(r.daily, n)}
-      ${r.bench ? `<div class="src">BNL benchmark · ${esc(r.bench.format)}, last ${BENCH_DAYS} days: CTR <b>${pct(r.bench.ctr_pct, 2)}</b>${r.bench.vtr_pct != null ? ` · VTR <b>${pct(r.bench.vtr_pct, 1)}</b>` : ""}${r.bench.viewability_pct != null ? ` · Viewab. <b>${pct(r.bench.viewability_pct, 1)}</b>` : ""} <span title="Impression-weighted average of all BNL direct campaigns of this format">(all BNL direct)</span></div>` : ""}
+      ${r.bench ? `<div class="src">${esc(r.bench.market)} benchmark · ${esc(r.bench.format)}, last ${BENCH_DAYS} days: CTR <b>${pct(r.bench.ctr_pct, 2)}</b>${r.bench.vtr_pct != null ? ` · VTR <b>${pct(r.bench.vtr_pct, 1)}</b>` : ""}${r.bench.viewability_pct != null ? ` · Viewab. <b>${pct(r.bench.viewability_pct, 1)}</b>` : ""} <span title="Impression-weighted average of all ${esc(r.bench.market)} direct campaigns of this format">(all ${esc(r.bench.market)} direct)</span></div>` : ""}
       <div class="src">${esc(r.type)} · ${r.ended ? `Final delivery: <b>${pct(r.deliveredPct, 0)}</b>` : `Projected delivery: <b>${pct(proj, 0)}</b>${r.type === "Direct" && r.projRaw > 100 ? " (capped — direct stops at 100%, ahead of schedule)" : ""}`}${r.type === "PMP" && L.gross_revenue_spent_ratio != null ? ` · Budget spent: <b>${pct(L.gross_revenue_spent_ratio, 0)}</b>` : ""} · Budget at risk: <b>${r.ended ? "—" : r.barEur != null ? "€" + fmt(r.barEur) : r.bar != null ? fmt(r.bar) + " " + esc(L.currency || "") : "—"}</b> <span title="Projection based on the average of the last 3 days">(3-day avg)</span>${r.truncated ? ` · <b>Daily data limited to the last ${HISTORY_DAYS} days</b> (flight started ${dmy(L.start_dt)}; totals and pacing still cover the whole flight)` : ""} · Sources: <b>BigQuery</b>${r.jira ? ` · <b>Jira ${esc(r.jira.key)}</b>` : ""}${state.files.filter(f => f.target === "all" || f.target === r.id).map(f => ` · <b>${esc(f.name)}</b>`).join("")}</div>
     </div>`);
   });
@@ -1188,7 +1196,7 @@ async function exportPdf() {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const ok = (state.results || []).filter(x => !x.missing);
-    const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands)$/, "")).filter(Boolean))].join(", ") || state.histBase?.label || "Campaign report";
+    const title = [...new Set(ok.map(x => String(x.last?.advertiser || "").replace(/ - (Belgium|Netherlands|France)$/, "")).filter(Boolean))].join(", ") || state.histBase?.label || "Campaign report";
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;background:#EBE6E4;font-family:'Instrument Sans',sans-serif;color:#000";
     // wide tables (tactics, targeting) wrap inside the 900px page instead of being cut on the right
@@ -1265,7 +1273,7 @@ function buildPrompt() {
       avg_daily_units_last_3_days: Math.round(r.avg3), consecutive_days_below_daily_goal: r.streak,
       kpis: r.kpis.map(k => ({ kpi: k.label, target: k.target, actual: k.actual, unit: k.unit || "%", lower_is_better: k.lowerBetter || undefined })),
       focus_period_avg: { ctr_pct: avg("ctr"), vtr_pct: avg("vtr"), viewability_pct: avg("vw") },
-      bnl_benchmark: r.bench ? { scope: `all BNL direct ${r.bench.format} campaigns, last ${BENCH_DAYS} days, impression-weighted`, ctr_pct: r.bench.ctr_pct, vtr_pct: r.bench.vtr_pct ?? undefined, viewability_pct: r.bench.viewability_pct ?? undefined } : undefined,
+      market_benchmark: r.bench ? { market: r.bench.market, scope: `all ${r.bench.market} direct ${r.bench.format} campaigns, last ${BENCH_DAYS} days, impression-weighted`, ctr_pct: r.bench.ctr_pct, vtr_pct: r.bench.vtr_pct ?? undefined, viewability_pct: r.bench.viewability_pct ?? undefined } : undefined,
       daily: (mode === "end" ? d : d.slice(-10)).map(x => ({ dt: x.dt, units: x.units, goal: x.goal, ctr: x.ctr && +x.ctr.toFixed(2), vtr: x.vtr && +x.vtr.toFixed(1), vw: x.vw && +x.vw.toFixed(1) })),
       jira_brief: r.jira?.brief?.slice(0, 800),
       previous_update: prevSnapshot(r.id) || undefined,
@@ -1325,7 +1333,7 @@ ${mode === "update" ? `TYPE: MID-FLIGHT UPDATE — concise and factual.
   3. More budget next time: ONLY if delivery went fine (fully delivered, no pacing issues) — say the campaign had room to scale.
   NEVER recommend changing or adding creatives. No other generic advice.`}
 - STRATEGIES (mandatory): if "buying_engine_strategies" is present (campaign served on Buying Engine), ALWAYS give the strategy data in the campaign's section, whatever the type, tone or preferences — the preferences about leaving out metrics do not apply to it. Write a line "**Strategies:**" followed by one "- " bullet per strategy, biggest first: "- **<strategy name>**: <share_pct>% of impressions · <KPI metric> <value>" where the KPI metric is "strategy_kpi_metric" (fall back to CTR for display, VTR for video). Then one short sentence saying which strategy carries the volume and which performs best on the KPI. Use the strategy names exactly as given.${mode === "end" ? ' In the end report, also add a 4th bullet "- **Strategies:** …" in Where it performed.' : ""}
-- BENCHMARK: if "bnl_benchmark" is present, compare the campaign's main KPI to it in ONE short clause where it adds meaning (e.g. "VTR is **81.7%**, above the 72% we usually see on BNL video"). Say "what we usually see on <format> in BNL", never "benchmark data". Only for the KPI that matters; skip it when the gap is tiny (under ~5% relative) or when the campaign has no such metric.
+- BENCHMARK: if "market_benchmark" is present, compare the campaign's main KPI to it in ONE short clause where it adds meaning (e.g. "VTR is **81.7%**, above the 72% we usually see on BNL video"). Say "what we usually see on <format> in <market>" (market = "market" field: BNL or France), never "benchmark data". Only for the KPI that matters; skip it when the gap is tiny (under ~5% relative) or when the campaign has no such metric.
 - If "previous_update" is present, mention how key figures moved since that update (e.g. "CTR up from 0.58% to **0.62%** since last week"), briefly.
 - PERFORMANCE campaigns ("performance_internal_report" present): use those figures as the main source — impressions, clicks, client spend vs budget (spent %), CPC/CPM, and the KPI (visits or qualified visits) with CPV when there are visits. "pacing_index" is spend pacing vs plan (negative = behind). Never mention media cost or margin.
 ${mode === "end" ? `- Include a section **Where it performed** written as exactly 3 short bullets — "- **Contexts:** …", "- **Publishers:** …", "- **Devices:** …". Each bullet: one sentence, max 3 figures, saying who led on volume and who stood out (best/worst) on the chosen metric. Use readable names exactly as given (e.g. "Food & drink", not "food-and-drink"). No lists of every value. Content: top contexts and publishers by volume, and those with the best CTR/VTR (only if they had meaningful volume, e.g. ≥ 2% share), plus the device split — from "targeting_insights" — use ONLY the metrics listed in its "metrics" field (the ops lead chose them). Name them plainly (e.g. "automotive and personal finance pages", "schadeautos.nl").
@@ -1721,7 +1729,7 @@ async function saveHistory(posted) {
     const ok = (state.results || []).filter(r => !r.missing);
     const H = state.histBase;
     const doc = H ? { ts: Date.now(), crms: H.crms || [], label: H.label || "", feedback: state.feedback, statuses: H.statuses || {}, snap: H.snap || {}, jira: H.jira || {}, mode: H.mode || "update" } : { ts: Date.now(), mode: feedbackMode(),
-      jira: Object.fromEntries(state.results.filter(r => r.jira).map(r => [r.id, { key: r.jira.key, url: r.jira.url, csm: r.jira.csm || "", csmId: r.jira.csmId || "" }])), crms: state.results.map(r => r.id), label: ok[0]?.last?.advertiser?.replace(/ - (Belgium|Netherlands)$/, "") || "", feedback: state.feedback,
+      jira: Object.fromEntries(state.results.filter(r => r.jira).map(r => [r.id, { key: r.jira.key, url: r.jira.url, csm: r.jira.csm || "", csmId: r.jira.csmId || "" }])), crms: state.results.map(r => r.id), label: ok[0]?.last?.advertiser?.replace(/ - (Belgium|Netherlands|France)$/, "") || "", feedback: state.feedback,
       statuses: Object.fromEntries(state.results.map(r => [r.id, r.status || "NO DATA"])),
       snap: Object.fromEntries(state.results.filter(r => !r.missing).map(r => [r.id, JSON.parse(JSON.stringify(snapshotOf(r)))])) };
     const prev = histDocs.find(x => x.id === state.histId);
@@ -1733,16 +1741,16 @@ async function saveHistory(posted) {
 
 /* ---------- live campaigns browser ---------- */
 async function browseLive() {
-  const main = $("#main"); main.innerHTML = `<div class="card empty"><span class="spin dk"></span>Loading live BNL campaigns…</div>`;
+  const main = $("#main"); main.innerHTML = `<div class="card empty"><span class="spin dk"></span>Loading live BNL + France campaigns…</div>`;
   const y = isoDaysAgo(1);
   const mk = (cube, dims, meas) => ({ dimensions: dims.map(x => cube + x), measures: meas.map(x => cube + x),
     timeDimensions: [{ dimension: cube + "dt", dateRange: [y, y] }],
-    filters: [{ member: cube + "country_sold", operator: "equals", values: ["Belgium", "Netherlands"] }], limit: 1000 });
+    filters: [{ member: cube + "country_sold", operator: "equals", values: COUNTRIES }], limit: 2000 });
   const D = "direct_product_line_delivery_tz.", M = "pmp_product_line_delivery_tz.";
   try {
     const [dr, pr] = await Promise.all([
-      call(CUBE_SRV, "run_query", { query: mk(D, ["salesforce_crm_id","product_line_name","am","adops","end_dt","days_left","units_pacing_ratio","first_kpi","first_kpi_value","ctr_accumulated","vtr_accumulated","vw_accumulated"], ["impressions"]) }),
-      call(CUBE_SRV, "run_query", { query: mk(M, ["salesforce_crm_id","product_line_name","am","adops","end_dt","days_left","impressions_pacing_ratio","gross_revenue_spent_ratio"], ["impressions"]) }).catch(() => [])
+      call(CUBE_SRV, "run_query", { query: mk(D, ["salesforce_crm_id","product_line_name","am","adops","country_sold","end_dt","days_left","units_pacing_ratio","first_kpi","first_kpi_value","ctr_accumulated","vtr_accumulated","vw_accumulated"], ["impressions"]) }),
+      call(CUBE_SRV, "run_query", { query: mk(M, ["salesforce_crm_id","product_line_name","am","adops","country_sold","end_dt","days_left","impressions_pacing_ratio","gross_revenue_spent_ratio"], ["impressions"]) }).catch(() => [])
     ]);
     const strip = (rows, pre, type) => (Array.isArray(rows) ? rows : []).map(r0 => { const o = { type }; for (const k in r0) o[k.replace(pre, "")] = r0[k]; return o; });
     const list = [...strip(dr, "direct_product_line_delivery_tz__", "Direct"), ...strip(pr, "pmp_product_line_delivery_tz__", "PMP")]
@@ -1751,7 +1759,7 @@ async function browseLive() {
         const pacing = x.units_pacing_ratio ?? x.impressions_pacing_ratio;
         const a = kpiActual(x.first_kpi, x); const tgt = x.first_kpi_value != null ? x.first_kpi_value * 100 : null;
         const kpiMiss = a?.val != null && tgt != null && a.val < tgt;
-        return { ...x, pacing, kpiTxt: x.first_kpi ? `${x.first_kpi.replace(/ percentage| number| currency/i, "")} ${a?.val != null ? pct(a.val, 2) : "—"}${tgt != null ? " / " + pct(tgt, 2) : ""}` : "—",
+        return { ...x, market: marketOf(x.country_sold), pacing, kpiTxt: x.first_kpi ? `${x.first_kpi.replace(/ percentage| number| currency/i, "")} ${a?.val != null ? pct(a.val, 2) : "—"}${tgt != null ? " / " + pct(tgt, 2) : ""}` : "—",
           flag: (pacing != null && pacing < 95) || kpiMiss };
       }).sort((a, b) => (b.flag - a.flag) || String(a.adops).localeCompare(String(b.adops)));
     state.live = list; renderLive();
@@ -1760,21 +1768,22 @@ async function browseLive() {
 function renderLive() {
   const L = state.live || [], main = $("#main");
   const opts = k => [...new Set(L.map(x => x[k]).filter(Boolean))].sort().map(v => `<option>${esc(v)}</option>`).join("");
-  main.innerHTML = `<div class="card"><div class="crm-head"><div><h3>Live BNL campaigns</h3><p>Data of ${dmy(isoDaysAgo(1))} · ${L.length} campaigns · flagged first (pacing &lt; 95% or KPI below target)</p></div>
+  main.innerHTML = `<div class="card"><div class="crm-head"><div><h3>Live campaigns · BNL + France</h3><p>Data of ${dmy(isoDaysAgo(1))} · ${L.length} campaigns · flagged first (pacing &lt; 95% or KPI below target)</p></div>
     <div style="display:flex;gap:8px"><button class="btn sec" id="liveWatch">Add selected to Monday drafts</button><button class="btn dark" id="liveAdd">Add selected →</button></div></div>
-    <div class="row2" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+    <div class="row2" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
+      <select id="fMkt"><option value="">All markets</option><option ${state.liveMkt === "BNL" ? "selected" : ""}>BNL</option><option ${state.liveMkt === "France" ? "selected" : ""}>France</option></select>
       <select id="fOps"><option value="">All ops</option>${opts("adops")}</select>
       <select id="fCsm"><option value="">All CSMs</option>${opts("am")}</select>
       <select id="fFlag"><option value="">All statuses</option><option value="1">To watch only</option></select></div>
     <div style="max-height:620px;overflow:auto"><table id="liveT"></table></div></div>`;
   const draw = () => {
-    const o = $("#fOps").value, c = $("#fCsm").value, f = $("#fFlag").value;
-    const rows = L.filter(x => (!o || x.adops === o) && (!c || x.am === c) && (!f || x.flag));
-    $("#liveT").innerHTML = `<tr><th><input type="checkbox" id="liveAll"></th><th>CRM</th><th>Campaign</th><th>Ops</th><th>CSM</th><th>Pacing</th><th>First KPI</th><th>Ends</th></tr>` +
-      rows.map(x => `<tr><td><input type="checkbox" class="lv" value="${esc(x.salesforce_crm_id)}" ${state.crms.includes(String(x.salesforce_crm_id)) ? "checked" : ""}></td><td>${esc(x.salesforce_crm_id)}</td><td>${esc(String(x.product_line_name || "").replace(/\t/g, " · ").slice(0, 70))} <span class="muted">${esc(x.type)}</span></td><td>${esc(x.adops || "—")}</td><td>${esc(x.am || "—")}</td><td class="${x.pacing == null ? "" : x.pacing >= 95 ? "d-ok" : "d-ko"}">${pct(x.pacing, 0)}</td><td>${esc(x.kpiTxt)}</td><td>${dmy(x.end_dt)}</td></tr>`).join("");
+    const o = $("#fOps").value, c = $("#fCsm").value, f = $("#fFlag").value, mk = $("#fMkt").value;
+    const rows = L.filter(x => (!mk || x.market === mk) && (!o || x.adops === o) && (!c || x.am === c) && (!f || x.flag));
+    $("#liveT").innerHTML = `<tr><th><input type="checkbox" id="liveAll"></th><th>CRM</th><th>Campaign</th><th>Market</th><th>Ops</th><th>CSM</th><th>Pacing</th><th>First KPI</th><th>Ends</th></tr>` +
+      rows.map(x => `<tr><td><input type="checkbox" class="lv" value="${esc(x.salesforce_crm_id)}" ${state.crms.includes(String(x.salesforce_crm_id)) ? "checked" : ""}></td><td>${esc(x.salesforce_crm_id)}</td><td>${esc(String(x.product_line_name || "").replace(/\t/g, " · ").slice(0, 70))} <span class="muted">${esc(x.type)}</span></td><td>${esc(x.market)}</td><td>${esc(x.adops || "—")}</td><td>${esc(x.am || "—")}</td><td class="${x.pacing == null ? "" : x.pacing >= 95 ? "d-ok" : "d-ko"}">${pct(x.pacing, 0)}</td><td>${esc(x.kpiTxt)}</td><td>${dmy(x.end_dt)}</td></tr>`).join("");
     $("#liveAll").onchange = e => document.querySelectorAll(".lv").forEach(c => c.checked = e.target.checked);
   };
-  ["#fOps", "#fCsm", "#fFlag"].forEach(s => $(s).onchange = draw); draw();
+  ["#fOps", "#fCsm", "#fFlag"].forEach(s => $(s).onchange = draw); $("#fMkt").onchange = e => { state.liveMkt = e.target.value; draw(); }; draw();
   $("#liveWatch").onclick = () => { const ids = [...document.querySelectorAll(".lv:checked")].map(c => c.value); if (!ids.length) return; saveWatch([...state.watch, ...ids]); note(`${ids.length} campaign(s) added to Monday drafts.`, "ok"); };
   $("#liveAdd").onclick = () => { const ids = [...document.querySelectorAll(".lv:checked")].map(c => c.value); if (!ids.length) return; addCrms(ids.join(" ")); note(`${ids.length} campaign(s) added — hit Generate feedback.`, "ok"); };
 }
@@ -1860,7 +1869,7 @@ async function run(opts = {}) {
         ...tgt.map(async x => { try { x.targeting = await fetchTargeting(x);
           if (x.targeting) { x.tgtMetrics = x.targeting.isVideo ? ["viewability", "vcr"] : ["ctr", "viewability"]; x.tgtHidden = new Set(["(unclassified)", "unknown", "bot"]); } } catch (e) { warn(`Targeting insights ${x.id}: ${e.message}`); } }),
         ...se.map(async x => { try { x.strategies = await fetchStrategies(x); } catch (e) { console.warn(e); } }),
-        fetchBench().then(B => se.forEach(x => { const b = B[x.last.product]; if (b) x.bench = { format: x.last.product, ...b }; })).catch(e => console.warn("benchmark", e))
+        fetchBench().then(B => se.forEach(x => { const mk = marketOf(x.last.country_sold), b = B[mk]?.[x.last.product]; if (b) x.bench = { format: x.last.product, market: mk, ...b }; })).catch(e => console.warn("benchmark", e))
       ]);
     }
     renderResults();

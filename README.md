@@ -136,6 +136,9 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
+**2026-11-24**
+- France opened: "Browse live campaigns" now lists BNL + France (Country sold), with a Market column and an "All markets / BNL / France" filter. The benchmark is per market: BNL (Belgium + Netherlands, impression-weighted) or France, picked from the campaign's Country sold; the prompt field is now "market_benchmark". Jira lookup still only searches the BNL and PT projects.
+
 **2026-11-23**
 - "Fetching data for…" loader: the four team avatars pass a small chart to each other, each one hopping as it catches it (static with reduced motion).
 - Buttons: lift on hover, press on click, clear keyboard focus ring, shimmer while a button is working (Generate, PDF, Fix…), small pop on "Copied ✓"; tabs, tone pills, column buttons and × also react on hover. All motion off with reduced motion.
