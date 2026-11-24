@@ -384,7 +384,11 @@ async function call(server, tool, input) {
   if (!mcp) throw new Error("Connectors unavailable in this view (open the artifact on claude.ai while signed in).");
   try {
     const r = await mcp.callTool(server, tool, input);
-    return unwrap(r && "payload" in r ? r.payload : r);
+    const out = unwrap(r && "payload" in r ? r.payload : r);
+    // a cube answer that isn't rows (access message, error text…) must not look like "no data"
+    if (tool === "run_query" && out != null && !Array.isArray(out) && !Array.isArray(out.rows) && !Array.isArray(out.data))
+      throw { message: "unexpected answer: " + (typeof out === "string" ? out : JSON.stringify(out)).slice(0, 300) };
+    return out;
   } catch (e) {
     throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}${connHint(server, e)}`);
   }
