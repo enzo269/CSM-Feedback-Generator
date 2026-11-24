@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-24**
+- Fix "NO DATA" everywhere: the BigQuery (Cube) connector now answers in a columnar format `{"columns": [...], "rows": [[...]]}`; the page converts it back to rows (for every query tool). Cards showing NO DATA have a "What BigQuery answered" box for debugging.
 - More tolerant reading of BigQuery answers: JSON wrapped in extra fields or text, and columns named "cube.member" instead of "cube__member", are now read instead of showing "No data". Raw answers are logged to the console ("cube answer") for debugging.
 - A BigQuery answer that isn't rows (e.g. an access message from a colleague's connector) is now shown as an error instead of silently becoming "No data".
 - Colleagues: when someone other than the owner opens the page, the feedback is written in their name (user capability, profile scope) and history / preferences are shown as Enzo-only instead of failing. Connector errors now say what to do (connector not connected, access declined, sign in again).
