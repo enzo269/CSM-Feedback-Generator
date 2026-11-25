@@ -136,6 +136,9 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
+**2026-11-25**
+- Extra KPI files: the header row is now the widest mostly-text row in the first 40 lines, so CM360 / DV360 exports with report set-up lines above the columns (Date/Time Generated, Date Range, MRC Accredited Metrics, "Report Fields"…) are read correctly; those lines are listed as excluded set-up. Cleaned tables are cached, so the setup dialog stays fast on big reports (19 000 rows: ~25 ms per click instead of ~400 ms).
+
 **2026-11-24**
 - Fix "NO DATA" everywhere: the BigQuery (Cube) connector now answers in a columnar format `{"columns": [...], "rows": [[...]]}`; the page converts it back to rows (for every query tool). Cards showing NO DATA have a "What BigQuery answered" box for debugging.
 - More tolerant reading of BigQuery answers: JSON wrapped in extra fields or text, and columns named "cube.member" instead of "cube__member", are now read instead of showing "No data". Raw answers are logged to the console ("cube answer") for debugging.

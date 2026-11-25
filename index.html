@@ -84,7 +84,7 @@ label{font-size:12px;color:var(--grey);display:block;margin:12px 0 4px}
 .fcol .nm{font-weight:600;font-size:13.5px;word-break:break-word}
 .fcol .ex{color:var(--g4);font-size:12px;font-weight:400;display:block;margin-top:2px;border:none;padding:0;background:none}
 .fagg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.f-cunit,.f-runit{padding:5px 8px;font-size:12px;border-radius:16px}
+.f-cunit,.f-runit{padding:5px 8px;font-size:12px;border-radius:16px;width:auto;flex:none}
 .seg{display:inline-flex;border:1px solid var(--g2);border-radius:20px;overflow:hidden}
 .seg button{border:none;background:#fff;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer;color:#000;border-left:1px solid var(--g1)}
 .seg button:first-child{border-left:none}
@@ -478,12 +478,23 @@ function parseNum(v) {
 //  - "total": summary rows (all dimension columns blank, or a first cell "Total" / "Grand total") — they would double the sums
 //  - "manual": rows matching the user's exclusion filters (f.excl)
 const isBlank = x => String(x ?? "").trim() === "";
+// cleaned table, cached per file + sheet + row filters (big reports have tens of thousands of rows and the dialog re-renders on every click)
 function tableOf(f, sh = f.sheets[f.sheet]) {
+  const key = (sh?.name ?? "") + "|" + (sh?.rows?.length ?? 0) + "|" + JSON.stringify(f.excl || []) + "|" + !!f.keepAuto;
+  f._tc ||= new Map(); if (f._tc.has(key)) return f._tc.get(key);
+  const T = tableOf0(f, sh); if (f._tc.size > 20) f._tc.clear(); f._tc.set(key, T); return T;
+}
+function tableOf0(f, sh) {
   const rows = sh?.rows || [];
-  let h = rows.slice(0, 15).findIndex(r => { const v = r.filter(x => !isBlank(x)); return v.length >= 2 && v.filter(x => isNaN(parseNum(x))).length >= v.length * 0.6; });
+  // header = the widest mostly-text row near the top (CM360 / DV360 exports put report set-up lines like
+  // "Date/Time Generated, 11/25/26" or "MRC Accredited Metrics, …" above the real column names)
+  const isHead = r => { const v = r.filter(x => !isBlank(x)); return v.length >= 2 && v.filter(x => isNaN(parseNum(x))).length >= v.length * 0.6; };
+  let h = -1, best = 0;
+  rows.slice(0, 40).forEach((r, i) => { const n = r.filter(x => !isBlank(x)).length; if (n > best && isHead(r)) { best = n; h = i; } });
   if (h < 0) h = 0;
   const seen = {}, header = (rows[h] || []).map((x, i) => { let n = String(x).trim() || "Column " + (i + 1); if (seen[n]) n += " (" + (++seen[n]) + ")"; else seen[n] = 1; return n; });
   const body = rows.slice(h + 1), dropped = [];
+  rows.slice(0, h).forEach(r => { if (!r.every(isBlank)) dropped.push({ why: "setup", r, top: true }); });
   let end = body.length, started = false;
   for (let i = 0; i < body.length; i++) { const e = body[i].every(isBlank); if (!e) started = true; else if (started) { end = i; break; } }
   body.slice(end).forEach(r => { if (!r.every(isBlank)) dropped.push({ why: "setup", r }); });
@@ -499,7 +510,7 @@ function tableOf(f, sh = f.sheets[f.sheet]) {
       const tot = /^(grand\s+)?totals?\b/i.test(first) || (dims.length && dims.length < header.length && dims.every(i => isBlank(r[i])) && r.some((x, i) => !dims.includes(i) && !isBlank(x)));
       if (tot) dropped.push({ why: "total", r }); return !tot;
     });
-  } else { data = data.concat(dropped.filter(x => x.why === "setup" && filled(x.r) > 2).map(x => x.r)); }
+  } else { data = data.concat(dropped.filter(x => x.why === "setup" && !x.top && filled(x.r) > 2).map(x => x.r)); }
   (f.excl || []).forEach(x => { const i = header.indexOf(x.col); if (i < 0) return;
     data = data.filter(r => { const v = String(r[i] ?? "").trim().toLowerCase(), t = String(x.val || "").trim().toLowerCase();
       const hit = x.op === "blank" ? v === "" : x.op === "equals" ? v === t : t !== "" && v.includes(t);
