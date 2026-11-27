@@ -156,6 +156,7 @@ tr:nth-child(even) td{background:var(--cream)}
 .note.err{background:#fff;border:1.5px solid var(--coral)}
 .note.info{background:#fff;border:1px solid var(--g1)}
 .note.ok{background:#fff;border:1px solid var(--black)}
+.stale{background:#fff;border:1.5px solid var(--coral);border-radius:10px;padding:9px 12px;font-size:12px;margin:2px 0 12px}
 .empty{text-align:center;padding:60px 20px;color:var(--grey)}
 .empty em{font-family:'Instrument Serif',serif;font-size:28px;color:var(--black);display:block;margin-bottom:8px}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid #000;border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite;vertical-align:-2px;margin-right:6px}
@@ -1016,8 +1017,13 @@ function analyse(id, rows, jira, streakN) {
   const expectedToDate = pacing ? last.units_accumulated / (pacing / 100) : null;
   // flight started before the history window: daily data (chart, weekly insights) only covers the last HISTORY_DAYS days
   const truncated = !!day(last.start_dt) && day(last.start_dt) < isoDaysAgo(HISTORY_DAYS);
+  // stale data: BigQuery's daily load is late, the last day with data is before yesterday (or before the end date for a flight that just ended)
+  const dataDate = daily.at(-1)?.dt || null;
+  const expDate = [isoDaysAgo(1), day(last.end_dt)].filter(Boolean).sort()[0];
+  const staleDays = dataDate && expDate > dataDate && (!day(last.start_dt) || day(last.start_dt) <= expDate) ? Math.round((new Date(expDate) - new Date(dataDate)) / 864e5) : 0;
+  if (staleDays) why.push(`BigQuery data only up to ${dmy(dataDate)}`);
   return {
-    truncated, avg3, bar, barEur, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm, expectedToDate, type, ended, deliveredPct,
+    dataDate, expDate, staleDays, truncated, avg3, bar, barEur, why, id, jira, last, daily, streak, pacing, kpis, kpiMiss, status, cls, pm, expectedToDate, type, ended, deliveredPct,
     projected: projRaw == null ? null : (type === "Direct" ? Math.min(projRaw, 100) : projRaw), projRaw,
     name: String(last.product_line_name || "").replace(/\t/g, " · "),
     csm: last.am || jira?.csm || ""
@@ -1166,6 +1172,7 @@ function renderResults() {
       <div class="crm-head"><div><h3>${esc(r.id)} · ${esc(r.name)}</h3>
         <p>${r.jira ? `<a href="${esc(r.jira.url)}" target="_blank">${esc(r.jira.key)}</a> · ` : ""}CSM ${esc(r.csm || "—")} · ${dmy(L.start_dt)} → ${dmy(L.end_dt)} (${L.days_left ?? "—"} days left) · ${fmt(L.salesforce_configured_units)} units · ${esc(r.pm)} ${L.payment_value ?? ""} ${esc(L.currency || "")} · ${fmt(L.booked_revenue)} ${esc(L.currency || "")}</p></div>
         <div style="text-align:right"><span class="pill ${r.cls}">${esc(r.status)}</span>${r.why.length && !r.ended ? `<div class="muted" style="margin-top:6px;font-size:11px">${r.why.map(esc).join("<br>")}</div>` : ""}</div></div>
+      ${r.staleDays ? `<div class="stale"><b>Data only up to ${dmy(r.dataDate)}</b> — BigQuery hasn't loaded ${r.staleDays === 1 ? dmy(r.expDate) : `the last ${r.staleDays} days (to ${dmy(r.expDate)})`} yet. Delivery, pacing and KPIs below are ${r.staleDays} day${r.staleDays > 1 ? "s" : ""} behind: check before sending, or regenerate later.</div>` : ""}
       <table><tr><th>KPI</th><th>Target</th><th>Actual</th><th>Gap</th></tr>${del}${rowsK}${fileK}</table>
       ${perfBlock(r)}
       ${sinceBlock(r)}
@@ -1313,6 +1320,7 @@ function buildPrompt() {
       final_delivered_pct_of_booking: r.ended ? r.deliveredPct && +r.deliveredPct.toFixed(1) : undefined,
       budget_spent_pct: L.gross_revenue_spent_ratio,
       flight: `${day(L.start_dt)} → ${day(L.end_dt)}`, days_left: L.days_left,
+      data_freshness_warning: r.staleDays ? `BigQuery data only goes up to ${r.dataDate} (expected up to ${r.expDate}): the last ${r.staleDays} day(s) are not loaded yet, so delivered units, pacing and KPIs are behind reality` : undefined,
       daily_data_note: r.truncated ? `daily data only covers the last ${HISTORY_DAYS} days of the flight; cumulative totals cover the whole flight` : undefined,
       booked_units: L.salesforce_configured_units, delivered_units_to_date: L.units_accumulated,
       pacing_pct_to_date: r.pacing, projected_end_of_campaign_delivery_pct_of_booking_at_current_pace: r.ended ? undefined : r.projected && +r.projected.toFixed(1),
@@ -1369,6 +1377,7 @@ WRITING STYLE — this is the most important part:
 - Put the important figures in **bold** (pacing %, delivered vs booked, KPI actual vs target, days left, budget at risk). Don't bold everything — only the numbers that matter.
 ${mode === "update" ? `TYPE: MID-FLIGHT UPDATE — concise and factual.
 - 1 sentence overall summary, then per campaign 2–4 short lines: pacing to date and days left, KPIs vs targets (above/below and by how much), any notable trend in the focus period, anything from extra files.
+- DATA FRESHNESS: when a campaign has data_freshness_warning, do NOT call it under-pacing or at risk on delivery alone. Say the latest figures available are up to that date and that the missing day(s) are not loaded yet; keep pacing statements cautious.
 - Under pacing = delivered below the daily goal for several consecutive days (consecutive_days_below_daily_goal). State it plainly with the figure.
 - NO recommendations in a mid-flight update. Only state facts; if something needs attention, say we're keeping an eye on it.
 - The closing line is the forward-looking one (what we're watching / next update).` : `TYPE: END-OF-CAMPAIGN REPORT — precise, covering the whole flight.

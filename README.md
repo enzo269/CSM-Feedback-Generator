@@ -136,6 +136,9 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - Buying Engine strategies are always given in the feedback (one bullet per strategy with share and KPI metric).
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
+**2026-11-27**
+- Late BigQuery data: when the last day with delivery data is before yesterday (or before the end date of a flight that just ended), the campaign card shows a "Data only up to dd/mm" warning, the reason is listed under the status, and Claude is told not to call the campaign under-pacing on that basis.
+
 **2026-11-25**
 - Extra KPI files: the header row is now the widest mostly-text row in the first 40 lines, so CM360 / DV360 exports with report set-up lines above the columns (Date/Time Generated, Date Range, MRC Accredited Metrics, "Report Fields"…) are read correctly; those lines are listed as excluded set-up. Cleaned tables are cached, so the setup dialog stays fast on big reports (19 000 rows: ~25 ms per click instead of ~400 ms).
 
