@@ -137,6 +137,7 @@ See `scheduled-task/monday-drafts-prompt.md`. Currently **disabled**.
 - PDF export: pages break between paragraphs, table rows and campaign cards (a card that fits on a page is never split); wide tables wrap; very long reports keep their end (resolution lowered instead of truncated).
 
 **2026-11-27**
+- Fix: the BigQuery connector cuts long answers (e.g. only the first 11 days of a flight, with a note asking for the next offset). Cube queries now fetch every page, so daily data, cumulative delivery, pacing and KPIs go up to yesterday again.
 - Late BigQuery data: when the last day with delivery data is before yesterday (or before the end date of a flight that just ended), the campaign card shows a "Data only up to dd/mm" warning, the reason is listed under the status, and Claude is told not to call the campaign under-pacing on that basis.
 
 **2026-11-25**

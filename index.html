@@ -384,7 +384,24 @@ function unwrap(p) {
 }
 function norm0(rows, tool) { if (tool !== "run_query") return rows; return rows.map(x => { if (!x || typeof x !== "object" || Array.isArray(x)) return x; const o = {}; for (const k in x) o[/^[a-z0-9_]+\.[a-z0-9_.]+$/i.test(k) ? k.replace(".", "__") : k] = x[k]; return o; }); }
 const cubeLog = []; // last BigQuery answers, shown on "no data" cards to diagnose
+// The cube connector cuts long answers ("Cut: these are the first 11 of the 24 rows… send the same query with offset: 11"):
+// keep asking with the next offset until the answer is complete, so long flights don't stop mid-way.
 async function call(server, tool, input) {
+  if (tool !== "run_query" || !input?.query) return call1(server, tool, input);
+  const q = input.query, lim = q.limit || Infinity;
+  let off = q.offset || 0, acc = null;
+  for (let page = 0; page < 200; page++) {
+    const out = await call1(server, tool, { ...input, query: off ? { ...q, offset: off } : q });
+    const rows = Array.isArray(out) ? out : Array.isArray(out?.rows) ? out.rows : Array.isArray(out?.data) ? out.data : null;
+    if (!rows) return out;
+    if (!acc) acc = out; else (Array.isArray(acc) ? acc : acc.rows || acc.data).push(...rows);
+    const got = (Array.isArray(acc) ? acc : acc.rows || acc.data).length;
+    if (!out.__cut || !rows.length || got >= lim) break;
+    off += rows.length;
+  }
+  return acc;
+}
+async function call1(server, tool, input) {
   caps();
   const mcp = await mcpP;
   if (!mcp) throw new Error("Connectors unavailable in this view (open the artifact on claude.ai while signed in).");
@@ -403,7 +420,8 @@ async function call(server, tool, input) {
     if (tool === "run_query" && out != null && !Array.isArray(out) && !Array.isArray(out.rows) && !Array.isArray(out.data))
       throw { message: "unexpected answer: " + (typeof out === "string" ? out : JSON.stringify(out)).slice(0, 300) };
     // rows keyed "cube.member" (instead of "cube__member") are normalised so the rest of the page reads them the same way
-    if (tool === "run_query") { if (Array.isArray(out)) return norm0(out, tool); if (Array.isArray(out.rows)) return { ...out, rows: norm0(out.rows, tool) }; if (Array.isArray(out.data)) return { ...out, data: norm0(out.data, tool) }; }
+    const cut = tool === "run_query" && /\bCut:|send the same query with[^.]{0,40}offset/.test(JSON.stringify(r) || "");
+    if (tool === "run_query") { const tag = x => (cut && Object.defineProperty(x, "__cut", { value: true }), x); if (Array.isArray(out)) return tag(norm0(out, tool)); if (Array.isArray(out.rows)) return tag({ ...out, rows: norm0(out.rows, tool) }); if (Array.isArray(out.data)) return tag({ ...out, data: norm0(out.data, tool) }); }
     return out;
   } catch (e) {
     throw new Error(`${server} · ${tool}: ${e?.message || e?.code || e}${connHint(server, e)}`);
